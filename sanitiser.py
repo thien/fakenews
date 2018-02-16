@@ -19,6 +19,8 @@ def newDataset():
 
 # SETUP
 
+debug = False
+
 # set up our regular expressions we'll be using
 expressions = {
   'ID' : re.compile('([0-9]+,)'),
@@ -26,14 +28,17 @@ expressions = {
 }
 
 # The csv is trash so import it as a text file. I'm going to convert it into a python dictionary.
-training_set = []
+training_set = {
+  "fake" : [],
+  "real" : [],
+  "data" : {}
+}
 
 text_file = open("news_ds.csv", "r")
 lines = text_file.readlines()
 
 # there's 166,355 lines. 
 numberOfLines = len(lines)
-
 
 entry = newDataset()
 
@@ -52,7 +57,8 @@ for i in range(1,len(lines)):
     entry = newDataset()
     entry['ID'] = int(re.search(r'\d+', has_ID.group()).group())
     data_startPos = has_ID.end()
-    print("Found ID: ",entry['ID'])
+    if debug:
+      print("Found ID: ",entry['ID'])
   
   # Find Text
   text = line[data_startPos:]
@@ -60,27 +66,34 @@ for i in range(1,len(lines)):
 
   # Let's try to find a classifier at the end of the line.
   has_classifier = expressions['class'].search(line[-5:])
-  # print(has_classifier)
+ 
   if has_classifier:
     # we found a classifier, now we can finalise the dataset and make a new one!
     entry['class'] = int(re.search(r'\d+', has_classifier.group()).group())
-    print("Found Class: ",entry['class'])
+    if debug:
+      print("Found Class: ",entry['class'])
     # print(repr(entry['data']))
     index = has_classifier.span()
     su = -index[1]+index[0]
     text = text[0:len(text)+su+1]
-  else:
-    # if we're not at the end of the data, then just remove the line break and continue.
-    text.replace("\n", "")
-  
+
   # print(repr(text))
   entry['data'] += text
 
   if has_classifier:
     print(entry)
-    training_set.append(entry)
+    training_set['data'][entry['ID']] = entry
+    if entry['class'] == 0:
+      training_set['fake'].append(entry['ID'])
+    else:
+      training_set['real'].append(entry['ID'])
     entry = newDataset()
-    input()
-    print(chr(27) + "[2J")
+    # input()
+    # print(chr(27) + "[2J")
 
 text_file.close()
+
+print("Completed Sanitiser.")
+print("There are", len(training_set['data']), "entries.")
+print(len(training_set['fake']), "are fake")
+print(len(training_set['real']), "are real")
