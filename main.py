@@ -28,40 +28,43 @@
   2. Compare the results of your LSTM model with those of a Recursive neural network (RNN) in terms of quality metrics as in B2. and the execution time. (10 Marks)
 
   E.Results
-  Presentation:1. Write a main function within a file main.py. The functions should present in a clear and understandable formatall the output required to address all the problemsabove. (5 Marks)
+  Presentation:
+  1. Write a main function within a file main.py. The functions should present in a clear and understandable format all the output required to address all the problems above. (5 Marks)
 
-  Tools and Hints: You have the freedom to choose the tools to use within the Python framework. Suggested libraries:-Pandas-numpy-Spacy-NLTK-Keras-Tensorflow-Scikit-learnPandas is useful for data pre-processing/cleaning and grouping.Spacy (https://spacy.io/) is an example of a package that provides pre-trained Word2Vec models for English.
+  Tools and Hints: You have the freedom to choose the tools to use within the Python framework. Suggested libraries:
 
-  The LSTM will use sequences of word2vec features extracted from each article. Set the maximum sequence length to 1000. Use zero-padding for shorter sentences (in Keras you can use the pad_sequencesutility function)In Keras you may use an Embedding input layer (https://keras.io/layers/embeddings/) to map the word2vec features into a structure that Keras can process. Remember to split your data into training and testing sets. When working with LSTMs start experimenting with a subset of the data until you are satisfied with your architecture and then run the model on all the training data. This will save you time when debugging your code or deciding on model parameters.Report:Write a report to describe and justify your solutions and the design choices you have made at every step.
-  In particular 
-  1. justify the features usedin A2.
+  -Pandas
+  -numpy
+  -Spacy
+  -NLTK
+  -Keras
+  -Tensorflow
+  -Scikit-learn
+  
+  Pandas is useful for data pre-processing/cleaning and grouping.
+  Spacy (https://spacy.io/) is an example of a package that provides pre-trained Word2Vec models for English.
+
+  The LSTM will use sequences of word2vec features extracted from each article. Set the maximum sequence length to 1000. Use zero-padding for shorter sentences (in Keras you can use the pad_sequencesutility function) In Keras you may use an Embedding input layer (https://keras.io/layers/embeddings/) to map the word2vec features into a structure that Keras can process. Remember to split your data into training and testing sets. When working with LSTMs start experimenting with a subset of the data until you are satisfied with your architecture and then run the model on all the training data. This will save you time when debugging your code or deciding on model parameters.
+    
+  Report:
+  Write a report to describe and justify your solutions and the design choices you have made at every step.
+
+  In particular:
+  1. justify the features used in A2.
   2. What is your conclusion of the comparison among the models in B2.
   3. Provide rationale for the architecture of your deep learning models and the choice of activation functions
 
   Describe your conclusion of the use of the two approaches and discuss which approach you think is fit for purpose. Be creative in presenting the results in a clear and understandable format. Write a maximum of 2000 words. Figures and tables are excluded from the word count.(20 Marks)
 
   Additional Assessment Criteria:
-  A.General Performance of the solution on the test data set-Are the results comparable or above theexpected baseline (i.e. > 75 %accuracy)? (10 Marks)
+  A.General Performance of the solution on the test data set
+  -Are the results comparable or above the expected baseline (i.e. > 75% accuracy)? (10 Marks)
   -How all the components work together to achieve the reported results (10 Marks)
 
   B.Code style:-Clear, well documented programsource code (5 Marks)
 
   Submission: 
-  1-Sourcecode for both your shallow and deep solutions
-  2-Report,maximum of 2000 words
-  3-Clarify what libraries you have used and any specific installation instructions if applicable. 4-CODE THAT DOES NOT RUN WILL LOSE ITS FULL ALLOCATED MARK.
+  1. Sourcecode for both your shallow and deep solutions
+  2. Report,maximum of 2000 words
+  3. Clarify what libraries you have used and any specific installation instructions if applicable. 4. CODE THAT DOES NOT RUN WILL LOSE ITS FULL ALLOCATED MARK.
 '''
-
-# Let's start by parsing the csv data.
-
-import csv
-
-def csv_read(filepath):
-	data = {}
-	data['filepath'] = filepath
-	data['content'] = []
-	
-	with open(filepath, 'rt') as file:
-		data = csv_scrape(file, data)
-	# send data back
-	return data

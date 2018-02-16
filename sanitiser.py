@@ -17,6 +17,22 @@ def newDataset():
     'class' : 0
   }
 
+social_media_companies = [
+  "Google", "Pinterest", "Digg", "Linkedin", "Reddit", "Stumbleupon", "Print", "Delicious", "Pocket", "Tumblr"
+]
+
+redundant_text = [
+"image via twitter",
+]
+
+def filterString(x):
+  #remove line breaks
+  x = x.split('\n')[0]
+  # remove odd unicode
+  x.replace(u'\xa0', ' ').encode('utf-8')
+  # remove URLs
+  return x
+
 # SETUP
 
 debug = False
@@ -62,7 +78,7 @@ for i in range(1,len(lines)):
   
   # Find Text
   text = line[data_startPos:]
-  text = text.split('\n')[0] #remove line breaks
+  text = filterString(text)
 
   # Let's try to find a classifier at the end of the line.
   has_classifier = expressions['class'].search(line[-5:])
@@ -81,15 +97,15 @@ for i in range(1,len(lines)):
   entry['data'] += text
 
   if has_classifier:
-    print(entry)
+    print(entry['data'])
     training_set['data'][entry['ID']] = entry
     if entry['class'] == 0:
       training_set['fake'].append(entry['ID'])
     else:
       training_set['real'].append(entry['ID'])
     entry = newDataset()
-    # input()
-    # print(chr(27) + "[2J")
+    input()
+    print(chr(27) + "[2J")
 
 text_file.close()
 
