@@ -22,7 +22,9 @@ social_media_companies = [
 ]
 
 redundant_text = [
-"image via twitter",
+"Featured image via twitter",
+"share this"
+"follow us on Twitter"
 ]
 
 def filterString(x):
@@ -31,6 +33,12 @@ def filterString(x):
   # remove odd unicode
   x.replace(u'\xa0', ' ').encode('utf-8')
   # remove URLs
+  # remove duplicate quotes
+  x.replace('""', '"')
+  # remove duplicate spaces
+  x.replace("  ", " ")
+  # remove html tags
+  # remove " » "
   return x
 
 # SETUP
@@ -43,73 +51,83 @@ expressions = {
   'class' : re.compile(',(0|1)\n')
 }
 
-# The csv is trash so import it as a text file. I'm going to convert it into a python dictionary.
-training_set = {
-  "fake" : [],
-  "real" : [],
-  "data" : {}
-}
 
-text_file = open("news_ds.csv", "r")
-lines = text_file.readlines()
+def sanitise(filename="news_ds.csv"):
+  # The csv is trash so import it as a text file. I'm going to convert it into a python dictionary.
+  training_set = {
+    "fake" : [],
+    "real" : [],
+    "data" : {}
+  }
+  text_file = open(filename, "r")
+  lines = text_file.readlines()
 
-# there's 166,355 lines. 
-numberOfLines = len(lines)
+  # there's 166,355 lines. 
+  numberOfLines = len(lines)
 
-entry = newDataset()
+  entry = newDataset()
 
-# skip the first line; we know what it is.
-for i in range(1,len(lines)):
-# for i in range(1, 33):
-  # The ID tends to be in the first 8 characters of the line
-  line = lines[i]
-  # Default pos of text entry is 0.
-  data_startPos = 0
+  # skip the first line; we know what it is.
+  for i in range(1,len(lines)):
+  # for i in range(1, 33):
+    # The ID tends to be in the first 8 characters of the line
+    line = lines[i]
+    # Default pos of text entry is 0.
+    data_startPos = 0
 
-  # Let's find the ID
-  has_ID = expressions['ID'].match(line[:10])
-  if has_ID:
-    # our ID is contained here, initialise a new entry.
-    entry = newDataset()
-    entry['ID'] = int(re.search(r'\d+', has_ID.group()).group())
-    data_startPos = has_ID.end()
-    if debug:
-      print("Found ID: ",entry['ID'])
+    # Let's find the ID
+    has_ID = expressions['ID'].match(line[:10])
+    if has_ID:
+      # our ID is contained here, initialise a new entry.
+      entry = newDataset()
+      entry['ID'] = int(re.search(r'\d+', has_ID.group()).group())
+      data_startPos = has_ID.end()
+      if debug:
+        print("Found ID: ",entry['ID'])
+    
+    # Find Text
+    text = line[data_startPos:]
+    text = filterString(text)
+
+    # Let's try to find a classifier at the end of the line.
+    has_classifier = expressions['class'].search(line[-5:])
   
-  # Find Text
-  text = line[data_startPos:]
-  text = filterString(text)
+    if has_classifier:
+      # we found a classifier, now we can finalise the dataset and make a new one!
+      entry['class'] = int(re.search(r'\d+', has_classifier.group()).group())
+      if debug:
+        print("Found Class: ",entry['class'])
+      # print(repr(entry['data']))
+      index = has_classifier.span()
+      su = -index[1]+index[0]
+      text = text[0:len(text)+su+1]
 
-  # Let's try to find a classifier at the end of the line.
-  has_classifier = expressions['class'].search(line[-5:])
- 
-  if has_classifier:
-    # we found a classifier, now we can finalise the dataset and make a new one!
-    entry['class'] = int(re.search(r'\d+', has_classifier.group()).group())
-    if debug:
-      print("Found Class: ",entry['class'])
-    # print(repr(entry['data']))
-    index = has_classifier.span()
-    su = -index[1]+index[0]
-    text = text[0:len(text)+su+1]
+    # print(repr(text))
+    entry['data'] += text
 
-  # print(repr(text))
-  entry['data'] += text
+    if has_classifier:
+      if debug:
+        print(entry['data'])
+      training_set['data'][entry['ID']] = entry
+      if entry['class'] == 0:
+        training_set['fake'].append(entry['ID'])
+      else:
+        training_set['real'].append(entry['ID'])
+      entry = newDataset()
+      if debug:
+        input()
+        print(chr(27) + "[2J")
 
-  if has_classifier:
-    print(entry['data'])
-    training_set['data'][entry['ID']] = entry
-    if entry['class'] == 0:
-      training_set['fake'].append(entry['ID'])
-    else:
-      training_set['real'].append(entry['ID'])
-    entry = newDataset()
-    input()
-    print(chr(27) + "[2J")
+  text_file.close()
+  return training_set
 
-text_file.close()
 
-print("Completed Sanitiser.")
-print("There are", len(training_set['data']), "entries.")
-print(len(training_set['fake']), "are fake")
-print(len(training_set['real']), "are real")
+if __name__ == "__main__":
+  debug = True
+  print("this shouldn't be called.")
+  training_set = sanitise("news_ds.csv")
+
+  print("Completed Sanitiser.")
+  print("There are", len(training_set['data']), "entries.")
+  print(len(training_set['fake']), "are fake")
+  print(len(training_set['real']), "are real")

@@ -21,7 +21,7 @@
   # Deep Learning approach:
 
   C. Feature Extraction:
-  1. Write a function that takes a text as input and returns a list of word2vec features usinga pre-trained word2vec model. (5 Marks)
+  1. Write a function that takes a text as input and returns a list of word2vec features using a pre-trained word2vec model. (5 Marks)
 
   D.Classification:
   1. Build a Long Short-Term Memory (LSTM) to model the sentences in the news articles that can discriminate the articles into fake and real. (15 Marks)
@@ -68,3 +68,8 @@
   2. Report,maximum of 2000 words
   3. Clarify what libraries you have used and any specific installation instructions if applicable. 4. CODE THAT DOES NOT RUN WILL LOSE ITS FULL ALLOCATED MARK.
 '''
+import shallow as sh
+import deep as de
+import sanitiser as san
+
+training_data = san.sanitise("news_ds.csv")
