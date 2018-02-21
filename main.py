@@ -72,7 +72,16 @@ import shallow
 import deep
 import helpers
 
-training_data = helpers.loadJSON()
-training_data = shallow.tf(training_data)
-training_data = shallow.df(training_data)
-training_data = shallow.tfidf(training_data)
+dataset = helpers.loadJSON()
+# Shallow Feature Extraction
+dataset = shallow.tf(dataset)
+dataset = shallow.df(dataset)
+dataset = shallow.tfidf(dataset)
+
+# process probabilities
+dataset = shallow.preprocess_probabilities(dataset)
+# Shallow Classification
+shallow.naive_bayes(dataset)
+# Deep Feature Extraction
+
+# Deep Classification

@@ -38,7 +38,7 @@ expressions = {
   'url' : re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.IGNORECASE|re.DOTALL)
 }
 
-def filterString(x):
+def cleanSentence(x):
   # remove urls
   x = expressions['url'].sub("", x)
   # # incase there are html tags, remove them.
@@ -57,7 +57,7 @@ def filterString(x):
   x = re.sub("[^a-zA-Z0-9.]"," ", x) # The text to search
   # lowercase
   x = x.lower()
-  # remove duplicate spaces
+  # remove stop words
   return x
 
 
@@ -96,7 +96,7 @@ def sanitise(filename="news_ds.csv"):
     
     # Find Text
     text = line[data_startPos:]
-    text = filterString(text)
+    text = cleanSentence(text)
 
     # Let's try to find a classifier at the end of the line.
     has_classifier = expressions['class'].search(line[-5:])
@@ -128,6 +128,16 @@ def sanitise(filename="news_ds.csv"):
         print(chr(27) + "[2J")
 
   text_file.close()
+
+  # decide test and training data
+  training_set['test_data'] = {}
+  for i in training_set['real'] + training_set['fake']:
+    training_set['test_data'][i] = False
+  
+  # choose the last 150 real and fake news articles as testing data.
+  for i in training_set['real'][-150:] + training_set['fake'][-150:]:
+    training_set['test_data'][i] = True
+
   return training_set
 
 def saveJSON(dictionary):
