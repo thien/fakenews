@@ -68,8 +68,11 @@
   2. Report,maximum of 2000 words
   3. Clarify what libraries you have used and any specific installation instructions if applicable. 4. CODE THAT DOES NOT RUN WILL LOSE ITS FULL ALLOCATED MARK.
 '''
-import shallow as sh
-import deep as de
-import sanitiser as san
+import shallow
+import deep
+import helpers
 
-training_data = san.sanitise("news_ds.csv")
+training_data = helpers.loadJSON()
+training_data = shallow.tf(training_data)
+training_data = shallow.df(training_data)
+training_data = shallow.tfidf(training_data)
