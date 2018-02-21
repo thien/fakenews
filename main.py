@@ -72,25 +72,43 @@ import shallow
 import deep
 import helpers
 
+enable_shallow = True
+enable_deep = True
+
+# load our dataset.
 dataset = helpers.loadJSON()
+
+# ---------------------
+
+
 # Shallow Feature Extraction
 dataset = shallow.tf(dataset)
 dataset = shallow.df(dataset)
 dataset = shallow.tfidf(dataset)
 
-# process probabilities
+# process probabilities that we'll need for our naive bayes
 dataset = shallow.preprocess_probabilities(dataset)
-# Shallow Classification
-results = shallow.naive_bayes(dataset)
-# evaluation methods for shallow results
-scores = shallow.evaluate(results)
-accuracy = shallow.calculateAccuracy(scores)
-precision = shallow.calculatePrecision(scores)
-recall = shallow.calculateRecall(scores)
-f1Measure = shallow.calculateF1Measure(precision, recall)
+
+  # filter the training data based on the df information we have
+  # https://stackoverflow.com/questions/10464265/effects-of-stemming-on-the-term-frequency
+
+if enable_shallow:
+  # Shallow Classification
+  results = shallow.naive_bayes(dataset)
+
+  # evaluation methods for shallow results
+  scores = shallow.evaluate(results)
+  accuracy = shallow.calculateAccuracy(scores)
+  precision = shallow.calculatePrecision(scores)
+  recall = shallow.calculateRecall(scores)
+  f1Measure = shallow.calculateF1Measure(precision, recall)
   
-
-
+# ---------------------
+if enable_deep:
+  
 # Deep Feature Extraction
+  dataset = deep.word2vec(dataset)
 
 # Deep Classification
+  result_a = deep.lstm(dataset)
+  result_b = deep.rnn(dataset)

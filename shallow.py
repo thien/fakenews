@@ -7,10 +7,10 @@ import sanitiser
 
 def tf(dataset):
   print("Running Term-Frequency.. ", end='')
-  for key in dataset['data']:
-    text = dataset['data'][key]['data']
+  for article in dataset['data']:
+    text = dataset['data'][article]['data']
     # need to split this into separate words
-    text = text.split(" ")
+    # text = text.split(" ")
 
     frequency = {}
     for word in text:
@@ -22,8 +22,8 @@ def tf(dataset):
     for word in frequency:
       frequency[word] = np.log10(frequency[word])
 
-    dataset['data'][key]['tf'] = frequency
-    dataset['data'][key]['length'] = len(text)
+    dataset['data'][article]['tf'] = frequency
+    dataset['data'][article]['length'] = len(text)
     
   print("Done.")
   return dataset
@@ -149,7 +149,7 @@ def naive_bayes(dataset):
     if dataset['test_data'][article]:
       counter += 1
       # set up the text for analysis
-      article_text = dataset['data'][article]['data'].split(" ")
+      article_text = dataset['data'][article]['data']
       # count the vocab size
       vocabularySize = len(article_text)
 
