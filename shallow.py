@@ -84,15 +84,123 @@ def preprocess_probabilities(dataset):
   for word in dataset['words']:
     dataset['words'][word]['fake_p'] = dataset['words'][word]['fake']/len(dataset['fake'])
     dataset['words'][word]['real_p'] = dataset['words'][word]['real']/len(dataset['real'])
+
+  # need to count the number of unique words in the class.
+  numberOfWordsInFake = 0
+  numberOfWordsInReal = 0
+
+  # count the overall number of words in the class.
+  sumNumberOfWordsInFake = 0
+  sumNumberOfWordsInReal = 0
+
+  for word in dataset['words']:
+    if dataset['words'][word]['fake'] > 0:
+      numberOfWordsInFake += 1
+      sumNumberOfWordsInFake += dataset['words'][word]['fake']
+    if dataset['words'][word]['real'] > 0:
+      numberOfWordsInReal += 1
+      sumNumberOfWordsInReal += dataset['words'][word]['real']
+
+  dataset['statistics'] = {
+    'uniqueWordsInFake' : numberOfWordsInFake,
+    'uniqueWordsInReal' : numberOfWordsInReal,
+    'wordsInFake' : sumNumberOfWordsInFake,
+    'wordsInReal' : sumNumberOfWordsInReal
+  }
+
+  dataset['training_data'] = {
+    'fake_articles' : [],
+    'real_articles' : []
+  }
+  # count the training data for fake and real articles
+  for article in dataset['data']:
+    # look at the training data.
+    if not dataset['test_data'][article]:
+      # check if it's fake news or not and group them.
+      if dataset['data'][article]['class'] == 0:
+        dataset['training_data']['fake_articles'].append(article)
+      else:
+        dataset['training_data']['real_articles'].append(article)
+    dataset['training_data']['size'] = len(dataset['training_data']['fake_articles'])
+    dataset['training_data']['size'] +=len(dataset['training_data']['real_articles'])
+
+  print("Number of Articles:", dataset['training_data']['size'])
+  print("Number of Fake Articles:", len(dataset['training_data']['fake_articles']))
+  print("Number of Real Articles:", len(dataset['training_data']['real_articles']))
+
+  # calculate the probability of fake and real news based on training dataset
+  p_fake_article = len(dataset['training_data']['fake_articles'])/dataset['training_data']['size']
+  p_real_article = len(dataset['training_data']['real_articles'])/dataset['training_data']['size']
+  dataset['training_data']['prob_fake_article'] = p_fake_article
+  dataset['training_data']['prob_real_article'] = p_real_article
+  print("Probability of Real Article:", p_real_article, ", Fake:", p_fake_article)
   return dataset
 
 # Use a Multinomial Naïve Bayes classifier to discriminate fake from real news. (5 marks)
 def naive_bayes(dataset):
-  # start by cleaning the test data
-  # sample_sentence = sanitiser.cleanSentence(sample_sentence)
-  # we need to consider fake and real and choose the higher probability.
-  # also need to consider making our sanitiser function work for any sentence.
-  
+  # take note of how well this performs.
+  results = []
+
+  # Note: we need to consider fake and real and choose the higher probability.
+  print("Running Multinomial Naive Bayes Classifier.. \n", end='')
+  counter = 0
+  for article in dataset['test_data']:
+    # look at the test data.
+    if dataset['test_data'][article]:
+      counter += 1
+      print("Article", counter, "is being tested.")
+      # set up the text for analysis
+      article_text = dataset['data'][article]['data'].split(" ")
+      # count the vocab size
+      vocabularySize = len(article_text)
+
+      fake_cond_probs = []
+      real_cond_probs = []
+
+      count_fake_plus_vocab = dataset['statistics']['wordsInFake'] + vocabularySize
+      count_real_plus_vocab = dataset['statistics']['wordsInReal'] + vocabularySize
+
+      # calculate the probability that it is fake news
+      for word in dataset['data'][article]['tf']:
+        # grab it from our list of words
+        word_p = {
+          'fake' : 1,
+          'real' : 1,
+          'df' : 1
+        }
+        if word in dataset['words']:
+          word_p = dataset['words'][word]
+          # print(word_p)
+        else:
+          # we just keep the word_p template.
+          pass
+      
+        # print("Word: ", word, ", Fake Encouters:", word_p['fake'], ", Real Encounters:", word_p['real'])
+        cond_prob_word_fake = ((word_p['fake']+1) / count_fake_plus_vocab)
+        cond_prob_word_real = ((word_p['real']+1) / count_real_plus_vocab)
+        # print("Word:", word, "p(f):", cond_prob_word_fake, "p(r):", cond_prob_word_real)
+        fake_cond_probs.append(cond_prob_word_fake)
+        real_cond_probs.append(cond_prob_word_real)
+
+      # numbers are too small so we take the logarithmic value
+      cond_probability_fake = np.sum(np.log10(np.array(fake_cond_probs)))
+      cond_probability_fake = cond_probability_fake * dataset['training_data']['prob_fake_article']
+      cond_probability_real = np.sum(np.log10(np.array(real_cond_probs)))
+      cond_probability_real = cond_probability_real * dataset['training_data']['prob_real_article']
+      
+      # generate results container for analysis
+      result = {
+        'number' : counter,
+        'id' : article,
+        'p_fake' : cond_probability_real,
+        'p_real' : cond_probability_real,
+        'guess' : 0 if (cond_probability_fake > cond_probability_real) else 1,
+        'actual' : dataset['data'][article]['class']
+      }
+      results.append(result)
+      print(result)
+
+  print("Done.")
   return dataset
 
 # Compare the classification results using the different features you extracted in the previous step. Use the classification accuracy, Precision, Recall, and F1-measure as comparison metrics.(5 Marks)
