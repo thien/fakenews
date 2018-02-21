@@ -9,6 +9,8 @@ It's important to note that there are articles that span several lines so we nee
 '''
 
 import re
+from bs4 import BeautifulSoup
+import json
 
 def newDataset():
   return {
@@ -27,29 +29,36 @@ redundant_text = [
 "follow us on Twitter"
 ]
 
-def filterString(x):
-  #remove line breaks
-  x = x.split('\n')[0]
-  # remove odd unicode
-  x.replace(u'\xa0', ' ').encode('utf-8')
-  # remove URLs
-  # remove duplicate quotes
-  x.replace('""', '"')
-  # remove duplicate spaces
-  x.replace("  ", " ")
-  # remove html tags
-  # remove " » "
-  return x
-
-# SETUP
-
 debug = False
 
 # set up our regular expressions we'll be using
 expressions = {
   'ID' : re.compile('([0-9]+,)'),
-  'class' : re.compile(',(0|1)\n')
+  'class' : re.compile(',(0|1)\n'),
+  'url' : re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.IGNORECASE|re.DOTALL)
 }
+
+def filterString(x):
+  # remove urls
+  x = expressions['url'].sub("", x)
+  # # incase there are html tags, remove them.
+  # x = BeautifulSoup(x, "lxml").get_text()
+  #remove line breaks
+  x = x.split('\n')[0]
+  # remove odd unicode
+  x.replace(u'\xa0', ' ').encode('utf-8')
+  # remove duplicate quotes
+  x.replace('""', '"')
+  # remove duplicate spaces
+  x = re.sub(' +',' ',x)
+  # remove apostrophies
+  x = re.sub("'", "", x)
+  # letters and numbers only!
+  x = re.sub("[^a-zA-Z0-9.]"," ", x) # The text to search
+  # lowercase
+  x = x.lower()
+  # remove duplicate spaces
+  return x
 
 
 def sanitise(filename="news_ds.csv"):
@@ -121,9 +130,13 @@ def sanitise(filename="news_ds.csv"):
   text_file.close()
   return training_set
 
+def saveJSON(dictionary):
+  with open('trainingset.json', 'w') as fp:
+    json.dump(dictionary, fp)
+  print("saved results to trainingset.json")
 
 if __name__ == "__main__":
-  debug = True
+  debug = False
   print("this shouldn't be called.")
   training_set = sanitise("news_ds.csv")
 
@@ -131,3 +144,5 @@ if __name__ == "__main__":
   print("There are", len(training_set['data']), "entries.")
   print(len(training_set['fake']), "are fake")
   print(len(training_set['real']), "are real")
+
+  saveJSON(training_set)
