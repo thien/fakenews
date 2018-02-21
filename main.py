@@ -44,8 +44,6 @@
   Pandas is useful for data pre-processing/cleaning and grouping.
   Spacy (https://spacy.io/) is an example of a package that provides pre-trained Word2Vec models for English.
 
-  The LSTM will use sequences of word2vec features extracted from each article. Set the maximum sequence length to 1000. Use zero-padding for shorter sentences (in Keras you can use the pad_sequencesutility function) In Keras you may use an Embedding input layer (https://keras.io/layers/embeddings/) to map the word2vec features into a structure that Keras can process. Remember to split your data into training and testing sets. When working with LSTMs start experimenting with a subset of the data until you are satisfied with your architecture and then run the model on all the training data. This will save you time when debugging your code or deciding on model parameters.
-    
   Report:
   Write a report to describe and justify your solutions and the design choices you have made at every step.
 
@@ -108,7 +106,7 @@ if enable_deep:
   
 # Deep Feature Extraction
   dataset = deep.word2vec(dataset)
-
+  print(dataset)
 # Deep Classification
   result_a = deep.lstm(dataset)
   result_b = deep.rnn(dataset)

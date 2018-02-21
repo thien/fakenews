@@ -10,6 +10,7 @@ It's important to note that there are articles that span several lines so we nee
 
 import re
 import json
+from string import punctuation
 
 def newDataset():
   return {
@@ -38,10 +39,31 @@ debug = False
 expressions = {
   'ID' : re.compile('([0-9]+,)'),
   'class' : re.compile(',(0|1)\n'),
-  'url' : re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.IGNORECASE|re.DOTALL)
+  'url' : re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',re.IGNORECASE|re.DOTALL),
+  'twittercom': re.compile('[a-zA-Z]+twittercom[a-zA-Z0-9]+')
 }
 
 def cleanSentence(x):
+  # lowercase
+  x = x.lower()
+
+  x = x.replace("u.s.", "usa")
+
+  # remove “ and ”
+  x = x.replace("“", "")
+  x = x.replace("”", "")
+
+  x = x.replace(".", ". ")
+
+  # if there are commas between numbers
+  # merge them.
+  x = expressions['twittercom'].sub("", x)
+  # if there is an apostrophe next to two letters
+  # then delete everything past the apostrophe, including itself.
+  x = x.replace("’s", "")
+  x = x.replace("’", "")
+  x = x.replace("'s", "")
+
   # remove urls
   x = expressions['url'].sub("", x)
   #remove line breaks
@@ -50,21 +72,26 @@ def cleanSentence(x):
   x.replace(u'\xa0', ' ').encode('utf-8')
   # remove duplicate quotes
   x.replace('""', '"')
-  # remove duplicate spaces
-  x = re.sub(' +',' ',x)
+  x.replace('"', ' ')
   # remove apostrophies
-  x = re.sub("'", "", x)
+  x = re.sub("'", " ", x)
+
   # letters and numbers only!
   x = re.sub("[^a-zA-Z0-9.]"," ", x) # The text to search
-  # lowercase
-  x = x.lower()
+  # remove punctuation
+  x = ''.join(c for c in x if c not in punctuation)
   # remove stop words
   return x
 
 def cleanArticle(x):
-  # remove stopwords
+  # split words prior to submission
+  # print(x)
+
   x = x.split(" ")
-  x = [word for word in x if word not in stopwords.keys()]
+  # remove empty strings
+  x = list(filter(None, x))
+  # remove stopwords
+  x = [word.rstrip('.') for word in x if word not in stopwords.keys()]
   # x = " ".join(x)
   # print(x)
   # input()
@@ -87,6 +114,8 @@ def sanitise(filename="news_ds.csv"):
 
   # skip the first line; we know what it is.
   for i in range(1,len(lines)):
+    if i % 300 == 0:
+      print("Loading: " + str(round((i/len(lines)*100),2)) + "%\r", end="" )
   # for i in range(1, 33):
     # The ID tends to be in the first 8 characters of the line
     line = lines[i]
@@ -136,7 +165,7 @@ def sanitise(filename="news_ds.csv"):
       if debug:
         input()
         print(chr(27) + "[2J")
-
+  print("Loading: 100.0%")
   text_file.close()
 
   # decide test and training data
@@ -157,10 +186,9 @@ def saveJSON(dictionary):
 
 if __name__ == "__main__":
   debug = False
-  print("this shouldn't be called.")
+  print("Sanitising data.. ")
   training_set = sanitise("news_ds.csv")
 
-  print("Completed Sanitiser.")
   print("There are", len(training_set['data']), "entries.")
   print(len(training_set['fake']), "are fake")
   print(len(training_set['real']), "are real")
