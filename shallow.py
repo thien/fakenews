@@ -202,21 +202,65 @@ def naive_bayes(dataset):
   return results
 
 # Compare the classification results using the different features you extracted in the previous step. Use the classification accuracy, Precision, Recall, and F1-measure as comparison metrics.(5 Marks)
-def calculateAccuracy(results):
-  print("Accuracy: ", end='')
-  accuracy = 0
+
+def evaluate(results):
+  # generate the 2x2 contingency table
+  # alongside the accuracy
   total = len(results)
+  accuracy = 0
+  true_positive = 0
+  true_negative = 0
+  false_positive = 0
+  false_negative = 0
+
   for i in results:
+    # calculate accuracy
     if i['guess'] == i['actual']:
       accuracy += 1
-  accuracy = accuracy/total;
-  print(str(accuracy*100) + "%")
+    # calculate true positive
+      if (i['guess'] == 1):
+        true_positive += 1
+      else:
+        false_negative += 1
+    else:
+      if (i['guess'] == 1):
+        false_positive += 1
+      else:
+        true_negative += 1
+  
+  return {
+    'tp' : true_positive/total,
+    'fp' : false_positive/total,
+    'fn' : false_negative/total,
+    'tn' : true_negative/total,
+    'accuracy' : accuracy/total
+  }
 
-def calculatePrecision(results):
-  print("Precision")
 
-def calculateRecall(results):
-  print("Recall")
+def calculateAccuracy(scores):
+  # compare the test data result with it's classed result.
+  print("Accuracy: ", end='')
+  print(str(scores['accuracy']*100) + "%")
+  return scores['accuracy']
 
-def calculateF1Measure(results):
-  print("F1 Measure")
+def calculatePrecision(s):
+  # TP/(TP+FN)
+  # our input is the scores generated in evaluate(results)
+  print("Precision: ", end='')
+  precision = s['tp']/(s['tp']+s['fn'])
+  print(str(precision*100) + "%")
+  return precision
+
+def calculateRecall(s):
+  # TP/(TP+FP)
+  print("Recall: ", end='')
+  recall = s['tp']/(s['tp']+s['fp'])
+  print(str(recall*100) + "%")
+  return recall
+
+def calculateF1Measure(precision, recall):
+  # 2*(Precision*Recall)/(Precision+Recall)
+  print("F1 Measure: ", end='')
+  f1 = 2*(precision*recall)/(precision+recall)
+  print(str(f1*100) + "%")
+  return f1

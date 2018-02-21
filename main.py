@@ -83,10 +83,11 @@ dataset = shallow.preprocess_probabilities(dataset)
 # Shallow Classification
 results = shallow.naive_bayes(dataset)
 # evaluation methods for shallow results
-shallow.calculateAccuracy(results)
-shallow.calculatePrecision(results)
-shallow.calculateRecall(results)
-shallow.calculateF1Measure(results)
+scores = shallow.evaluate(results)
+accuracy = shallow.calculateAccuracy(scores)
+precision = shallow.calculatePrecision(scores)
+recall = shallow.calculateRecall(scores)
+f1Measure = shallow.calculateF1Measure(precision, recall)
   
 
 
