@@ -81,7 +81,15 @@ dataset = shallow.tfidf(dataset)
 # process probabilities
 dataset = shallow.preprocess_probabilities(dataset)
 # Shallow Classification
-dataset = shallow.naive_bayes(dataset)
+results = shallow.naive_bayes(dataset)
+# evaluation methods for shallow results
+shallow.calculateAccuracy(results)
+shallow.calculatePrecision(results)
+shallow.calculateRecall(results)
+shallow.calculateF1Measure(results)
+  
+
+
 # Deep Feature Extraction
 
 # Deep Classification

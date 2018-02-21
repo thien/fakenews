@@ -148,7 +148,6 @@ def naive_bayes(dataset):
     # look at the test data.
     if dataset['test_data'][article]:
       counter += 1
-      print("Article", counter, "is being tested.")
       # set up the text for analysis
       article_text = dataset['data'][article]['data'].split(" ")
       # count the vocab size
@@ -198,20 +197,26 @@ def naive_bayes(dataset):
         'actual' : dataset['data'][article]['class']
       }
       results.append(result)
-      print(result)
 
   print("Done.")
-  return dataset
+  return results
 
 # Compare the classification results using the different features you extracted in the previous step. Use the classification accuracy, Precision, Recall, and F1-measure as comparison metrics.(5 Marks)
-def calculateAccuracy(dataset):
-  return dataset
+def calculateAccuracy(results):
+  print("Accuracy: ", end='')
+  accuracy = 0
+  total = len(results)
+  for i in results:
+    if i['guess'] == i['actual']:
+      accuracy += 1
+  accuracy = accuracy/total;
+  print(str(accuracy*100) + "%")
 
-def calculatePrecision(dataset):
-  return dataset
+def calculatePrecision(results):
+  print("Precision")
 
-def calculateRecall(dataset):
-  return dataset
+def calculateRecall(results):
+  print("Recall")
 
-def calculateF1Measure(dataset):
-  return dataset
+def calculateF1Measure(results):
+  print("F1 Measure")
