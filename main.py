@@ -25,6 +25,7 @@
 
   D.Classification:
   1. Build a Long Short-Term Memory (LSTM) to model the sentences in the news articles that can discriminate the articles into fake and real. (15 Marks)
+  
   2. Compare the results of your LSTM model with those of a Recursive neural network (RNN) in terms of quality metrics as in B2. and the execution time. (10 Marks)
 
   E.Results

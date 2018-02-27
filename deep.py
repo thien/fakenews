@@ -13,8 +13,12 @@ from gensim.models import Word2Vec
 
 def word2vec(dataset, filename="word2vec"):
   print("Initialising Word2Vec modelling.. ")
+  # https://github.com/lesley2958/word2vec
   # http://textminingonline.com/training-word2vec-model-on-english-wikipedia-by-gensim
   # https://radimrehurek.com/gensim/models/word2vec.html
+  # https://learn.adicu.com/word2vec/
+  # http://adventuresinmachinelearning.com/gensim-word2vec-tutorial/
+  # http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/
   model = None
   try:
     model = Word2Vec.load(filename)
@@ -50,11 +54,11 @@ def word2vec(dataset, filename="word2vec"):
 # Long Short-Term Memory (15 marks)
 
 # The LSTM will use sequences of word2vec features extracted from each article. Set the maximum sequence length to 1000. Use zero-padding for shorter sentences (in Keras you can use the pad_sequencesutility function) In Keras you may use an Embedding input layer (https://keras.io/layers/embeddings/) to map the word2vec features into a structure that Keras can process. Remember to split your data into training and testing sets. When working with LSTMs start experimenting with a subset of the data until you are satisfied with your architecture and then run the model on all the training data. This will save you time when debugging your code or deciding on model parameters.
-  
-def lstm(dataset):
-  return 0
 
-# Recursive Neural Network (10 marks)
-def rnn(dataset):
-  return 0
-
+# Extra Notes
+"""
+http://www.deeplearningbook.org/
+http://adventuresinmachinelearning.com/recurrent-neural-networks-lstm-tutorial-tensorflow/
+http://adventuresinmachinelearning.com/convolutional-neural-networks-tutorial-tensorflow/
+http://adventuresinmachinelearning.com/python-tensorflow-tutorial/
+"""

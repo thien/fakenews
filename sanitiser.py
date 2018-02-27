@@ -97,7 +97,7 @@ def cleanArticle(x):
   # input()
   return x
 
-def sanitise(filename="news_ds.csv"):
+def sanitise(filename="news_ds.csv", numberOfTestData=150):
   # The csv is trash so import it as a text file. I'm going to convert it into a python dictionary.
   training_set = {
     "fake" : [],
@@ -174,7 +174,7 @@ def sanitise(filename="news_ds.csv"):
     training_set['test_data'][i] = False
   
   # choose the last 150 real and fake news articles as testing data.
-  for i in training_set['real'][-150:] + training_set['fake'][-150:]:
+  for i in training_set['real'][-numberOfTestData:] + training_set['fake'][-numberOfTestData:]:
     training_set['test_data'][i] = True
 
   return training_set
