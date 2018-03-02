@@ -1,56 +1,57 @@
 # # Imports!
 import pickle
+import os
+import helpers
 
 print("Importing Machine Learning libraries.. ", end="")
 # import pandas as pd
 import numpy as np
-
 import keras
-from keras.models import Sequential, load_model, model_from_json
-from keras.layers import Activation, Dropout, Flatten, Dense, BatchNormalization, LSTM, Embedding, Reshape
+from keras.models import Sequential
+from keras.layers import Activation, Dropout, Flatten, Dense, BatchNormalization, LSTM, Embedding, Reshape, Conv2D
 
 print("Done.")
 
-def loadGlove(trainingFile='glove.pickle'):
-  glove = {}
-  try:
-    print("Attempting to load '"+trainingFile+"'.. ", end='')
+# def loadGlove(trainingFile='glove.pickle'):
+#   glove = {}
+#   try:
+#     print("Attempting to load '"+trainingFile+"'.. ", end='')
       
-    with open(trainingFile, 'rb') as fp:
-      glove = pickle.load(fp)
-    print("Done.")
-  except:
-    print("Can't load '"+trainingFile+"'.")
-    print("Creating dataset from scratch.. ", end='')
-    glove = initialiseGlove()
-    print("Done.")
-  return glove
+#     with open(trainingFile, 'rb') as fp:
+#       glove = pickle.load(fp)
+#     print("Done.")
+#   except:
+#     print("Can't load '"+trainingFile+"'.")
+#     print("Creating dataset from scratch.. ", end='')
+#     glove = initialiseGlove()
+#     print("Done.")
+#   return glove
 
-def initialiseGlove(file="glove.6B.50d.txt"):
-  # Here we're using a Glove word2vec model! I tried using SpaCy's english model but it's rather abstract
-  print("Loading Glove dataset.. ", end="")
-  lines = None
-  with open(file,'rb') as f:
-    lines = f.readlines()
+# def initialiseGlove(file="glove.6B.50d.txt"):
+#   # Here we're using a Glove word2vec model! I tried using SpaCy's english model but it's rather abstract
+#   print("Loading Glove dataset.. ", end="")
+#   lines = None
+#   with open(file,'rb') as f:
+#     lines = f.readlines()
 
-  # initialise a matrix that considers the size of our glove vector
-  weights = np.zeros((len(lines), 50))
-  # create a list of words that we'll append to 
-  words = []
-  for i,line in enumerate(lines):
-    word_weights = line.split()
-    words.append(word_weights[0])
-    weight = word_weights[1:]
-    weights[i] = np.array([float(w) for w in weight])
-  # make words utf friendly
-  word_vocab = [w.decode("utf-8") for w in words]
-  glove = dict(zip(word_vocab, weights))
-  # save this to json so we don't have to faff about generating it again which would take much longer to compile
-  print("Done.")
-  # since we're using NP arrays, we can't just slap it into a json file as a cache unfortunately. Pickle is used instead
-  with open('glove.pickle', 'wb') as handle:
-    pickle.dump(glove, handle, protocol=pickle.HIGHEST_PROTOCOL)
-  return glove
+#   # initialise a matrix that considers the size of our glove vector
+#   weights = np.zeros((len(lines), 50))
+#   # create a list of words that we'll append to 
+#   words = []
+#   for i,line in enumerate(lines):
+#     word_weights = line.split()
+#     words.append(word_weights[0])
+#     weight = word_weights[1:]
+#     weights[i] = np.array([float(w) for w in weight])
+#   # make words utf friendly
+#   word_vocab = [w.decode("utf-8") for w in words]
+#   glove = dict(zip(word_vocab, weights))
+#   # save this to json so we don't have to faff about generating it again which would take much longer to compile
+#   print("Done.")
+#   # since we're using NP arrays, we can't just slap it into a json file as a cache unfortunately. Pickle is used instead
+#   with open('glove.pickle', 'wb') as handle:
+#     pickle.dump(glove, handle, protocol=pickle.HIGHEST_PROTOCOL)
+#   return glove
 
 def generateGloveDict(gloveWords, debug=False):
   if debug:
@@ -123,6 +124,7 @@ def text2int(article, word2int, wordLimit=1000):
   articleInInts = []
   # convert an array of words to an array of ints based on our word2int
   articleSize = len(article)
+
   # if the article is too long, cut it off at the wordlimit
   if articleSize > wordLimit:
     articleSize = wordLimit
@@ -197,6 +199,22 @@ def kerasLSTM(word2num):
   print("Done.")
   return model
 
+def kerasCNN(word2num):
+  print("Initialising LSTM... ", end="")
+  # we'll use a sequential CNN
+  model = keras.models.Sequential()
+  # initialise the embedding layer size; this converts the words into their word embeddings
+  model.add(Embedding(len(word2num), 50))
+  # initialise a convolutional layer
+  model.add(Conv2D(32, kernel_size=(3, 3),activation='relu'))
+  # initialise the dense layer size (this is the actual hidden layer)
+  model.add(Dense(1, activation='sigmoid'))
+  # group them together!
+  model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+  # print the summary
+  # model.summary()
+  print("Done.")
+
 def runLSTM(model, trainingData):
   xtr = trainingData['train']['x']
   ytr = trainingData['train']['y']
@@ -212,14 +230,16 @@ def runLSTM(model, trainingData):
   return model
 
 if __name__ == "__main__":
+  helpers.downloadGloveDataset()
   print("Testing LSTM")
-  (gloveWords,glove) = loadGlove()
+  glove = helpers.loadGlove()
+  gloveWords = glove.keys()
   import shallow
-  import helpers
   # load our dataset.
   dataset = helpers.loadJSON()
   dataset = shallow.tf(dataset)
   dataset = shallow.df(dataset)
+
   word2int = word2int(dataset,gloveWords)
   dataset = convertArticlesToInts(dataset, word2int, wordLimit=1000)
   trainingData = splitTrainingData(dataset)

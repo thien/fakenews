@@ -5,3 +5,4 @@ word2vec
 *.pickle
 glove.6B.50d.txt
 fake_or_real_news.csv
+datafiles/*

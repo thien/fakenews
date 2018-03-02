@@ -179,12 +179,13 @@ def sanitise(filename="news_ds.csv", numberOfTestData=150):
 
   return training_set
 
-def saveJSON(dictionary):
-  with open('trainingset.json', 'w') as fp:
-    json.dump(dictionary, fp)
-  print("saved results to trainingset.json")
+# def saveJSON(dictionary):
+#   with open('trainingset.json', 'w') as fp:
+#     json.dump(dictionary, fp)
+#   print("saved results to trainingset.json")
 
 if __name__ == "__main__":
+  import helpers
   debug = False
   print("Sanitising data.. ")
   training_set = sanitise("news_ds.csv")
@@ -193,4 +194,4 @@ if __name__ == "__main__":
   print(len(training_set['fake']), "are fake")
   print(len(training_set['real']), "are real")
 
-  saveJSON(training_set)
+  helpers.saveJSON(training_set, "trainingset.json")
