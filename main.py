@@ -68,11 +68,10 @@
   3. Clarify what libraries you have used and any specific installation instructions if applicable. 4. CODE THAT DOES NOT RUN WILL LOSE ITS FULL ALLOCATED MARK.
 '''
 import shallow
-import deep
 import helpers
 
 enable_shallow = True
-enable_deep = True
+enable_deep = False
 
 print("--:PRE PROCESSING:--------------------------------")
 
@@ -109,6 +108,7 @@ if enable_shallow:
 
 if enable_deep:
   print("--:DEEP:------------------------------------------")
+  import deep
   # Deep Feature Extraction
   # dataset = deep.word2vec(dataset)
   # print(dataset)

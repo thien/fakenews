@@ -1,6 +1,12 @@
 # import textacy
 import numpy as np
 import sanitiser
+from nltk import trigrams, bigrams
+
+"""
+For shallow, 
+"""
+
 # -----------------------------
 # Pre Processing and Feature Extraction
 # -----------------------------
@@ -43,7 +49,8 @@ def df(dataset):
           dataset['words'][word] = {
             'fake': 0,
             'real': 0,
-            'df' : 1
+            'tfidf': 0,
+            'df': 1
           }
           # add bias!
           dataset['words'][word]['df'] += 1
@@ -60,27 +67,101 @@ def df(dataset):
 
 def tfidf(dataset):
   print("Running TF-IDF.. ", end='')
-  for key in dataset['data']:
+  for article in dataset['data']:
     # check if the article is training data or not before
     # continuing
-    if not dataset['test_data'][key]:
-      dataset['data'][key]['tfidf'] = {}
-      for word in dataset['data'][key]['tf']:
-        tf = dataset['data'][key]['tf'][word]
-        idf = np.log10(dataset['data'][key]['length'] / dataset['words'][word]['df'])
-
-      dataset['data'][key]['tfidf'][word] = tf * idf
+    if not dataset['test_data'][article]:
+      tfidf_set = {}
+      for word in dataset['data'][article]['tf']:
+        # print(word)
+        tf = dataset['data'][article]['tf'][word]
+        document_length = dataset['data'][article]['length'] 
+        word_document_frequency = dataset['words'][word]['df']
+        idf = np.log10(document_length / word_document_frequency)
+        # add it to the list of tfidf words
+        tfidf_set[word] = tf * idf
+      dataset['data'][article]['tfidf'] = tfidf_set
   print("Done.")
   return dataset
 
-def ngram():
-  return 0
+def ngram(dataset, n=3):
+  print("Calculating N-Gram Feature Vector.. ", end="")
+  # i'd imagine that having an efficent method to compute ngrams would
+  # be very difficult given the span of time allocated for the assignment,
+  # so i'll be using nltk.
+
+  ngramFeatureVector = {}
+  unique_fake = 0
+  unique_real = 0
+  fake = 0
+  real = 0
+  for article in dataset['data']:
+    data = dataset['data'][article]['data']
+    grams = None
+    # awkwardly we cant iterate through it after this function
+    # so this is a new variable that's more universally accessible
+    # (we'll need this for our naive bayes)
+    gramSet = []
+    if n == 3:
+      grams = trigrams(data)
+    elif n == 2:
+      grams = bigrams(data)
+    # iterate through the grams generated
+    local_count = 0
+    for gram in grams:
+      local_count += 1
+      # create a new string which will be our key
+      g = ' '.join(gram)
+      gramSet.append(g)
+      if g not in ngramFeatureVector:
+        ngramFeatureVector[g] = {
+          "fake": 0,
+          "real": 0
+        }
+        # count the unique entry (which will be the first entry)
+        if dataset['data'][article]['class'] == 1:
+          unique_real += 1
+        else:
+          unique_fake += 1
+      # now accumulate the frequency of the feature vect
+      if dataset['data'][article]['class'] == 1:
+        ngramFeatureVector[g]['real'] += 1
+        real += 1
+      else:
+        ngramFeatureVector[g]['fake'] += 1
+        fake += 1
+
+    # update information for our article data
+    dataset['data'][article]['ngram'] = {
+      n : {
+        "size" : local_count,
+        "grams" : gramSet
+      }
+    }
+  
+  dataset['ngrams'] = {
+    n : {
+      "size" : {
+          "overall": fake + real,
+          "fake" : fake,
+          "real" : real
+      },
+      "unique_size" : {
+        "overall" : len(ngramFeatureVector),
+        "fake" : unique_fake,
+        "real" : unique_real
+      },
+      "grams": ngramFeatureVector
+    }
+  }
+  print("Done.")
+  return dataset
 
 # -----------------------------
 # Classification
 # -----------------------------
 
-def preprocess_probabilities(dataset):
+def preprocess_probabilities(dataset, debug=False):
   for word in dataset['words']:
     dataset['words'][word]['fake_p'] = dataset['words'][word]['fake']/len(dataset['fake'])
     dataset['words'][word]['real_p'] = dataset['words'][word]['real']/len(dataset['real'])
@@ -124,28 +205,30 @@ def preprocess_probabilities(dataset):
     dataset['training_data']['size'] = len(dataset['training_data']['fake_articles'])
     dataset['training_data']['size'] +=len(dataset['training_data']['real_articles'])
 
-  print("Number of Articles:", dataset['training_data']['size'])
-  print("Number of Fake Articles:", len(dataset['training_data']['fake_articles']))
-  print("Number of Real Articles:", len(dataset['training_data']['real_articles']))
-
   # calculate the probability of fake and real news based on training dataset
   p_fake_article = len(dataset['training_data']['fake_articles'])/dataset['training_data']['size']
   p_real_article = len(dataset['training_data']['real_articles'])/dataset['training_data']['size']
   dataset['training_data']['prob_fake_article'] = p_fake_article
   dataset['training_data']['prob_real_article'] = p_real_article
-  print("Probability of Real Article:", p_real_article, ", Fake:", p_fake_article)
+
+  if debug:
+    print("Number of Articles:", dataset['training_data']['size'])
+    print("Number of Fake Articles:", len(dataset['training_data']['fake_articles']))
+    print("Number of Real Articles:", len(dataset['training_data']['real_articles']))
+    print("Probability of Real Article:", p_real_article, ", Fake:", p_fake_article)
   return dataset
 
 # Use a Multinomial Naïve Bayes classifier to discriminate fake from real news. (5 marks)
-def naive_bayes(dataset):
+def naive_bayes(dataset, option="tf", ngramSize=3):
   # take note of how well this performs.
   results = []
 
   # Note: we need to consider fake and real and choose the higher probability.
   print("Running Multinomial Naive Bayes Classifier.. ", end='')
+  print()
   counter = 0
   for article in dataset['test_data']:
-    # look at the test data.
+    # check if this article is a test_data
     if dataset['test_data'][article]:
       counter += 1
       # set up the text for analysis
@@ -153,51 +236,126 @@ def naive_bayes(dataset):
       # count the vocab size
       vocabularySize = len(article_text)
 
-      fake_cond_probs = []
-      real_cond_probs = []
+      fake_cond_probs,real_cond_probs = [], []
 
       count_fake_plus_vocab = dataset['statistics']['wordsInFake'] + vocabularySize
       count_real_plus_vocab = dataset['statistics']['wordsInReal'] + vocabularySize
 
-      # calculate the probability that it is fake news
-      for word in dataset['data'][article]['tf']:
-        # grab it from our list of words
-        word_p = {
-          'fake' : 1,
-          'real' : 1,
-          'df' : 1
-        }
-        if word in dataset['words']:
-          word_p = dataset['words'][word]
-          # print(word_p)
-        else:
-          # we just keep the word_p template.
-          pass
-      
-        # print("Word: ", word, ", Fake Encouters:", word_p['fake'], ", Real Encounters:", word_p['real'])
-        cond_prob_word_fake = ((word_p['fake']+1) / count_fake_plus_vocab)
-        cond_prob_word_real = ((word_p['real']+1) / count_real_plus_vocab)
-        # print("Word:", word, "p(f):", cond_prob_word_fake, "p(r):", cond_prob_word_real)
-        fake_cond_probs.append(cond_prob_word_fake)
-        real_cond_probs.append(cond_prob_word_real)
+      cond_probability_fake, cond_probability_real = None, None
 
-      # numbers are too small so we take the logarithmic value
-      cond_probability_fake = np.sum(np.log10(np.array(fake_cond_probs)))
+      # process ngram option
+      if option == "ngrams":
+        # need to count the total of fake and real ngrams + the range of vocab
+        count_fake_ngram = dataset['ngrams'][ngramSize]['size']['fake']
+        count_real_ngram = dataset['ngrams'][ngramSize]['size']['real']
+        ngram_vocab = dataset['ngrams'][ngramSize]['unique_size']['overall']
+        # print(dataset['data'][article]['ngram'][ngramSize]['grams'])
+        # print("looking at ngrams")
+        # print(dataset['data'][article]['ngram'][ngramSize])
+        for gram in dataset['data'][article]['ngram'][ngramSize]['grams']:
+          # print(gram)
+          # print(dataset['ngrams'][ngramSize])
+          gram_p = {
+            'fake' : 1,
+            'real' : 1
+          }
+          # check if this gram exists, we can't make entries for non-existent ngrams in the corpus since there is a very high chance that it isn't in the corpus, thus flooding the classifier with not very useful information. 
+          if gram in dataset['ngrams'][ngramSize]['grams'].keys():
+            gram_p = dataset['ngrams'][ngramSize]['grams'][gram]
+          # print("Gram: ", gram, ", Fake Encouters:", gram_p['fake'], ", Real Encounters:", gram_p['real'])
+          # now we need to count the conditional probability
+          cond_prob_gram_fake = (gram_p['fake']+1)/(count_fake_ngram+ngram_vocab)
+          cond_prob_gram_real = (gram_p['real']+1)/(count_real_ngram+ngram_vocab)
+          # print("\t", gram, "p(f):", cond_prob_gram_fake, "p(r):", cond_prob_gram_real)
+          fake_cond_probs.append(cond_prob_gram_fake)
+          real_cond_probs.append(cond_prob_gram_real)
+        cond_probability_fake = np.sum(np.log10(np.array(fake_cond_probs)))
+        cond_probability_real = np.sum(np.log10(np.array(real_cond_probs)))
+        # print("fake:", cond_probability_fake, "real:", cond_probability_real)
+      # process tf option
+      if option == "tf":
+        for word in dataset['data'][article]['tf']:
+          # grab it from our list of words
+          word_p = {
+            'fake' : 1,
+            'real' : 1,
+            'df' : 1
+          }
+          if word in dataset['words']:
+            word_p = dataset['words'][word]
+            # print(word_p)
+          else:
+            # we just keep the word_p template.
+            pass
+          # print("Word: ", word, ", Fake Encouters:", word_p['fake'], ", Real Encounters:", word_p['real'])
+          cond_prob_word_fake = ((word_p['fake']+1) / count_fake_plus_vocab)
+          cond_prob_word_real = ((word_p['real']+1) / count_real_plus_vocab)
+          # P(word|class)=(word_count_in_class + 1)/(total_words_in_class+total_unique_words_in_class) 
+
+          # print(cond_prob_word_fake)
+          # print(cond_prob_word_real)
+          # print("Word:", word, "p(f):", cond_prob_word_fake, "p(r):", cond_prob_word_real)
+          fake_cond_probs.append(cond_prob_word_fake)
+          real_cond_probs.append(cond_prob_word_real)
+        # print(fake_cond_probs)
+        # print(real_cond_probs)
+        cond_probability_fake = np.sum(np.log10(np.array(fake_cond_probs)))
+        cond_probability_real = np.sum(np.log10(np.array(real_cond_probs)))
+      elif option == "tfidf":
+        # we need to compute tfidf against the test data.
+        # for each test document, we compare the word's frequency against the inverse document frequencies of our training data.
+        document_length = dataset['data'][article]['length'] 
+        for word in dataset['data'][article]['tf']:
+          # grab it from our list of words
+          word_p = {
+            'fake' : 1,
+            'real' : 1,
+            'df' : 1
+          }
+          if word in dataset['words']:
+            word_p = dataset['words'][word]
+
+            tf = dataset['data'][article]['tf'][word]
+            # calculate frequency of the word appearing in fake news and real news
+            # just to make sure we don't divide by zero we add a +1
+            document_frequency_fake = word_p['fake']+1
+            document_frequency_real = word_p['real']+1
+            # calculate tfidf for fake and real datasets
+            fake_tfidf  = tf * (1 / document_frequency_fake)
+            real_tfidf  = tf * (1 / document_frequency_real)
+            # calculate the conditional probability
+            cond_prob_word_fake = fake_tfidf+1 / count_fake_plus_vocab
+            cond_prob_word_real = real_tfidf+1 / count_real_plus_vocab
+            # P(word|class)=(tfidf_of_word + 1)/(total_words_in_class+total_unique_words_in_class) 
+
+            # print("cond_prob of word in fake and real doc",cond_prob_word_fake, cond_prob_word_real)
+            # print("Word:", word, "p(f):", cond_prob_word_fake, "p(r):", cond_prob_word_real)
+            fake_cond_probs.append(cond_prob_word_fake)
+            real_cond_probs.append(cond_prob_word_real)
+          else:
+            # we ignore this word's contribution to the probabilities
+            continue
+
+        # cond_probability_fake = np.sum(np.log10(np.array(fake_cond_probs)))
+        # cond_probability_real = np.sum(np.log10(np.array(real_cond_probs)))
+        cond_probability_fake = np.prod(np.array(fake_cond_probs))
+        cond_probability_real = np.prod(np.array(real_cond_probs))
+      # print("Sum of cond probs:", cond_prob_word_fake, cond_prob_word_real)
       cond_probability_fake = cond_probability_fake * dataset['training_data']['prob_fake_article']
-      cond_probability_real = np.sum(np.log10(np.array(real_cond_probs)))
       cond_probability_real = cond_probability_real * dataset['training_data']['prob_real_article']
-      
+      # print("Sum of cond probs Normalised:", cond_prob_word_fake, cond_prob_word_real)
       # generate results container for analysis
       result = {
         'number' : counter,
         'id' : article,
-        'p_fake' : cond_probability_real,
+        'p_fake' : cond_probability_fake,
         'p_real' : cond_probability_real,
         'guess' : 0 if (cond_probability_fake > cond_probability_real) else 1,
         'actual' : dataset['data'][article]['class']
       }
-      results.append(result)
-
+      print(result)
+      results.append(result) 
+      # break
   print("Done.")
   return results
 
@@ -264,3 +422,21 @@ def calculateF1Measure(precision, recall):
   f1 = 2*(precision*recall)/(precision+recall)
   print(str(f1*100) + "%")
   return f1
+
+if __name__ == "__main__":
+  import helpers
+  dataset = helpers.loadJSON()
+  dataset = tf(dataset)
+  dataset = df(dataset)
+  dataset = tfidf(dataset)
+  gramSize = 2
+  dataset = ngram(dataset, gramSize)
+  dataset = preprocess_probabilities(dataset)
+  results = naive_bayes(dataset, "ngrams", gramSize)
+  # results = naive_bayes(dataset, "tf")
+  # results = naive_bayes(dataset, "tfidf")
+  scores = evaluate(results)
+  accuracy = calculateAccuracy(scores)
+  precision = calculatePrecision(scores)
+  recall = calculateRecall(scores)
+  f1Measure = calculateF1Measure(precision, recall)
