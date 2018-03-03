@@ -1,4 +1,3 @@
-# # Imports!
 import helpers
 
 print("Importing Machine Learning libraries.. ", end="")
@@ -137,49 +136,38 @@ def splitTrainingData(dataset):
     }
   }
 
-def kerasLSTM(word2num):
-  print("Initialising LSTM... ", end="")
+def makeNN(word2num, netType="lstm", printSummary=False):
+  print("Initialising Neural Net ("+netType+")... ", end="")
   # we'll use a sequential CNN
   model = keras.models.Sequential()
   # initialise the embedding layer size
-  model.add(Embedding(len(word2num), 150))
-  # initialise the LSTM layer size
-  model.add(LSTM(64))
+  model.add(Embedding(len(word2num), 56))
+
+  if netType == "cnn":
+    # initialise a recurrent layer
+    model.add(SimpleRNN(64))
+  else:
+    # initialise the LSTM layer size
+    model.add(LSTM(64))
+
   # initialise the dense layer size (this is the actual hidden layer)
   model.add(Dense(1, activation='sigmoid'))
   # group them together!
   model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
-  # print the summary
-  # model.summary()
+  if printSummary:
+    # print the summary
+    model.summary()
   print("Done.")
   return model
 
-def kerasCNN(word2num):
-  print("Initialising CNN... ", end="")
-  # we'll use a sequential CNN
-  model = keras.models.Sequential()
-  # initialise the embedding layer size; this converts the words into their word embeddings
-  model.add(Embedding(len(word2num), 150))
-  # initialise a convolutional layer
-  model.add(SimpleRNN(64))
-  # initialise the dense layer size (this is the actual hidden layer)
-  model.add(Dense(1, activation='sigmoid'))
-  # group them together!
-  model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
-  # print the summary
-  # model.summary()
-  print("Done.")
-
-def runLSTM(model, trainingData):
+def runLSTM(model, trainingData, epochs=2):
   xtr = trainingData['train']['x']
   ytr = trainingData['train']['y']
   xte = trainingData['test']['x']
   yte = trainingData['test']['y']
-
   # how many samples to use
   batch_size = 128
-  # number of passes over the dataset
-  epochs = 2
+  # epochs is the number of passes over the dataset
   # start training!
   model.fit(xtr, ytr, batch_size=batch_size, epochs=epochs, validation_data=(xte, yte))
   return model
@@ -197,8 +185,8 @@ if __name__ == "__main__":
   word2int = word2int(dataset,gloveWords)
   dataset = convertArticlesToInts(dataset, word2int, wordLimit=1000)
   trainingData = splitTrainingData(dataset)
-  lstm_model = kerasLSTM(word2int)
-  cnn_model = kerasCNN(word2int)
-  lstm_model = runLSTM(lstm_model, trainingData)
-  cnn_model = runLSTM(cnn_model, trainingData)
+  lstm_model = makeNN(word2int,"lstm")
+  cnn_model = makeNN(word2int,"cnn")
+  lstm_results = runLSTM(lstm_model, trainingData)
+  cnn_results = runLSTM(cnn_model, trainingData)
   print("Done")
