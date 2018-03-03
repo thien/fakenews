@@ -1,6 +1,4 @@
 # # Imports!
-import pickle
-import os
 import helpers
 
 print("Importing Machine Learning libraries.. ", end="")
@@ -8,50 +6,8 @@ print("Importing Machine Learning libraries.. ", end="")
 import numpy as np
 import keras
 from keras.models import Sequential
-from keras.layers import Activation, Dropout, Flatten, Dense, BatchNormalization, LSTM, Embedding, Reshape, Conv2D
-
+from keras.layers import Activation, Dense, LSTM, Embedding, Conv2D, SimpleRNN
 print("Done.")
-
-# def loadGlove(trainingFile='glove.pickle'):
-#   glove = {}
-#   try:
-#     print("Attempting to load '"+trainingFile+"'.. ", end='')
-      
-#     with open(trainingFile, 'rb') as fp:
-#       glove = pickle.load(fp)
-#     print("Done.")
-#   except:
-#     print("Can't load '"+trainingFile+"'.")
-#     print("Creating dataset from scratch.. ", end='')
-#     glove = initialiseGlove()
-#     print("Done.")
-#   return glove
-
-# def initialiseGlove(file="glove.6B.50d.txt"):
-#   # Here we're using a Glove word2vec model! I tried using SpaCy's english model but it's rather abstract
-#   print("Loading Glove dataset.. ", end="")
-#   lines = None
-#   with open(file,'rb') as f:
-#     lines = f.readlines()
-
-#   # initialise a matrix that considers the size of our glove vector
-#   weights = np.zeros((len(lines), 50))
-#   # create a list of words that we'll append to 
-#   words = []
-#   for i,line in enumerate(lines):
-#     word_weights = line.split()
-#     words.append(word_weights[0])
-#     weight = word_weights[1:]
-#     weights[i] = np.array([float(w) for w in weight])
-#   # make words utf friendly
-#   word_vocab = [w.decode("utf-8") for w in words]
-#   glove = dict(zip(word_vocab, weights))
-#   # save this to json so we don't have to faff about generating it again which would take much longer to compile
-#   print("Done.")
-#   # since we're using NP arrays, we can't just slap it into a json file as a cache unfortunately. Pickle is used instead
-#   with open('glove.pickle', 'wb') as handle:
-#     pickle.dump(glove, handle, protocol=pickle.HIGHEST_PROTOCOL)
-#   return glove
 
 def generateGloveDict(gloveWords, debug=False):
   if debug:
@@ -181,13 +137,12 @@ def splitTrainingData(dataset):
     }
   }
 
-
 def kerasLSTM(word2num):
   print("Initialising LSTM... ", end="")
   # we'll use a sequential CNN
   model = keras.models.Sequential()
   # initialise the embedding layer size
-  model.add(Embedding(len(word2num), 50))
+  model.add(Embedding(len(word2num), 150))
   # initialise the LSTM layer size
   model.add(LSTM(64))
   # initialise the dense layer size (this is the actual hidden layer)
@@ -200,13 +155,13 @@ def kerasLSTM(word2num):
   return model
 
 def kerasCNN(word2num):
-  print("Initialising LSTM... ", end="")
+  print("Initialising CNN... ", end="")
   # we'll use a sequential CNN
   model = keras.models.Sequential()
   # initialise the embedding layer size; this converts the words into their word embeddings
-  model.add(Embedding(len(word2num), 50))
+  model.add(Embedding(len(word2num), 150))
   # initialise a convolutional layer
-  model.add(Conv2D(32, kernel_size=(3, 3),activation='relu'))
+  model.add(SimpleRNN(64))
   # initialise the dense layer size (this is the actual hidden layer)
   model.add(Dense(1, activation='sigmoid'))
   # group them together!
@@ -224,13 +179,12 @@ def runLSTM(model, trainingData):
   # how many samples to use
   batch_size = 128
   # number of passes over the dataset
-  epochs = 10
+  epochs = 2
   # start training!
   model.fit(xtr, ytr, batch_size=batch_size, epochs=epochs, validation_data=(xte, yte))
   return model
 
 if __name__ == "__main__":
-  helpers.downloadGloveDataset()
   print("Testing LSTM")
   glove = helpers.loadGlove()
   gloveWords = glove.keys()
@@ -243,6 +197,8 @@ if __name__ == "__main__":
   word2int = word2int(dataset,gloveWords)
   dataset = convertArticlesToInts(dataset, word2int, wordLimit=1000)
   trainingData = splitTrainingData(dataset)
-  model = kerasLSTM(word2int)
-  model = runLSTM(model, trainingData)
+  lstm_model = kerasLSTM(word2int)
+  cnn_model = kerasCNN(word2int)
+  lstm_model = runLSTM(lstm_model, trainingData)
+  cnn_model = runLSTM(cnn_model, trainingData)
   print("Done")

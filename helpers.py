@@ -126,6 +126,10 @@ def initialiseGlove(file="glove.6B.50d.txt"):
   print("Loading Glove dataset.. ", end="")
   lines = None
   file = os.path.join(datapath, file)
+  if not os.path.exists(file):
+    # the file doesn't even exist, we'll need to download it.
+    downloadGloveDataset()
+
   with open(file,'rb') as f:
     lines = f.readlines()
 
