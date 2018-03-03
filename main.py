@@ -60,7 +60,7 @@
   -Are the results comparable or above the expected baseline (i.e. > 75% accuracy)? (10 Marks)
   -How all the components work together to achieve the reported results (10 Marks)
 
-  B.Code style:-Clear, well documented programsource code (5 Marks)
+  B.Code style:-Clear, well documented program source code (5 Marks)
 
   Submission: 
   1. Sourcecode for both your shallow and deep solutions
@@ -73,6 +73,8 @@ import helpers
 
 enable_shallow = True
 enable_deep = True
+
+print("--:PRE PROCESSING:--------------------------------")
 
 # load our dataset.
 dataset = helpers.loadJSON()
@@ -92,6 +94,7 @@ dataset = shallow.preprocess_probabilities(dataset)
   # https://stackoverflow.com/questions/10464265/effects-of-stemming-on-the-term-frequency
 
 if enable_shallow:
+  print("--:SHALLOW:---------------------------------------")
   # Shallow Classification
   results = shallow.naive_bayes(dataset)
 
@@ -101,13 +104,25 @@ if enable_shallow:
   precision = shallow.calculatePrecision(scores)
   recall = shallow.calculateRecall(scores)
   f1Measure = shallow.calculateF1Measure(precision, recall)
-  
+
 # ---------------------
+
 if enable_deep:
-  
-# Deep Feature Extraction
-  dataset = deep.word2vec(dataset)
-  print(dataset)
-# Deep Classification
-  result_a = deep.lstm(dataset)
-  result_b = deep.rnn(dataset)
+  print("--:DEEP:------------------------------------------")
+  # Deep Feature Extraction
+  # dataset = deep.word2vec(dataset)
+  # print(dataset)
+  glove = helpers.loadGlove()
+  gloveWords = glove.keys()
+
+  # Deep Classification
+  # convert words in the dataset into gloveIDs
+  word2int = deep.word2int(dataset,gloveWords)
+  dataset = deep.convertArticlesToInts(dataset, word2int, wordLimit=1000)
+  # structure data so we can use it against keras
+  trainingData = deep.splitTrainingData(dataset)
+  # load neural networks
+  lstm_m, cnn_m = deep.makeNN(word2int,"lstm"), deep.makeNN(word2int,"cnn")
+  # perform testing
+  lstm_results = deep.runNN(lstm_m, trainingData)
+  cnn_results = deep.runNN(cnn_m, trainingData)

@@ -142,7 +142,7 @@ def naive_bayes(dataset):
   results = []
 
   # Note: we need to consider fake and real and choose the higher probability.
-  print("Running Multinomial Naive Bayes Classifier.. \n", end='')
+  print("Running Multinomial Naive Bayes Classifier.. ", end='')
   counter = 0
   for article in dataset['test_data']:
     # look at the test data.
