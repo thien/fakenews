@@ -70,17 +70,18 @@ def tfidf(dataset):
   for article in dataset['data']:
     # check if the article is training data or not before
     # continuing
-    if not dataset['test_data'][article]:
-      tfidf_set = {}
-      for word in dataset['data'][article]['tf']:
-        # print(word)
-        tf = dataset['data'][article]['tf'][word]
-        document_length = dataset['data'][article]['length'] 
+    # if not dataset['test_data'][article]:
+    tfidf_set = {}
+    for word in dataset['data'][article]['tf']:
+      # print(word)
+      tf = dataset['data'][article]['tf'][word]
+      document_length = dataset['data'][article]['length'] 
+      if word in dataset['words']:
         word_document_frequency = dataset['words'][word]['df']
         idf = np.log10(document_length / word_document_frequency)
         # add it to the list of tfidf words
         tfidf_set[word] = tf * idf
-      dataset['data'][article]['tfidf'] = tfidf_set
+    dataset['data'][article]['tfidf'] = tfidf_set
   print("Done.")
   return dataset
 
@@ -305,6 +306,8 @@ def naive_bayes(dataset, option="tf", ngramSize=3):
         # we need to compute tfidf against the test data.
         # for each test document, we compare the word's frequency against the inverse document frequencies of our training data.
         document_length = dataset['data'][article]['length'] 
+
+        # print(dataset['data'][article])
         for word in dataset['data'][article]['tf']:
           # grab it from our list of words
           word_p = {
@@ -312,10 +315,10 @@ def naive_bayes(dataset, option="tf", ngramSize=3):
             'real' : 1,
             'df' : 1
           }
+          # only consider words that we have in our training data.
           if word in dataset['words']:
             word_p = dataset['words'][word]
-
-            tf = dataset['data'][article]['tf'][word]
+            tf = np.round(10.0**dataset['data'][article]['tf'][word])
             # calculate frequency of the word appearing in fake news and real news
             # just to make sure we don't divide by zero we add a +1
             document_frequency_fake = word_p['fake']+1
@@ -323,23 +326,27 @@ def naive_bayes(dataset, option="tf", ngramSize=3):
             # calculate tfidf for fake and real datasets
             fake_tfidf  = tf * (1 / document_frequency_fake)
             real_tfidf  = tf * (1 / document_frequency_real)
+
+            # print(word, "TF:",tf,"Fake:", fake_tfidf, "Real:", real_tfidf)
+            fake_tfidf, real_tfidf = np.log10(fake_tfidf), np.log10(real_tfidf)
+            # print("\t", "logarithmic:", fake_tfidf, real_tfidf)
             # calculate the conditional probability
-            cond_prob_word_fake = fake_tfidf+1 / count_fake_plus_vocab
-            cond_prob_word_real = real_tfidf+1 / count_real_plus_vocab
+            cond_prob_word_fake = (fake_tfidf) / count_fake_plus_vocab
+            cond_prob_word_real = (real_tfidf) / count_real_plus_vocab
             # P(word|class)=(tfidf_of_word + 1)/(total_words_in_class+total_unique_words_in_class) 
 
             # print("cond_prob of word in fake and real doc",cond_prob_word_fake, cond_prob_word_real)
             # print("Word:", word, "p(f):", cond_prob_word_fake, "p(r):", cond_prob_word_real)
             fake_cond_probs.append(cond_prob_word_fake)
             real_cond_probs.append(cond_prob_word_real)
-          else:
-            # we ignore this word's contribution to the probabilities
-            continue
-
+        # values are so small we need to consider it in logarithmic form.
         # cond_probability_fake = np.sum(np.log10(np.array(fake_cond_probs)))
         # cond_probability_real = np.sum(np.log10(np.array(real_cond_probs)))
         cond_probability_fake = np.prod(np.array(fake_cond_probs))
         cond_probability_real = np.prod(np.array(real_cond_probs))
+        # cond_probability_fake = np.sum(np.array(fake_cond_probs))
+        # cond_probability_real = np.sum(np.array(real_cond_probs))
+
       # print("Sum of cond probs:", cond_prob_word_fake, cond_prob_word_real)
       cond_probability_fake = cond_probability_fake * dataset['training_data']['prob_fake_article']
       cond_probability_real = cond_probability_real * dataset['training_data']['prob_real_article']
@@ -432,9 +439,9 @@ if __name__ == "__main__":
   gramSize = 2
   dataset = ngram(dataset, gramSize)
   dataset = preprocess_probabilities(dataset)
-  results = naive_bayes(dataset, "ngrams", gramSize)
+  # results = naive_bayes(dataset, "ngrams", gramSize)
   # results = naive_bayes(dataset, "tf")
-  # results = naive_bayes(dataset, "tfidf")
+  results = naive_bayes(dataset, "tfidf")
   scores = evaluate(results)
   accuracy = calculateAccuracy(scores)
   precision = calculatePrecision(scores)
