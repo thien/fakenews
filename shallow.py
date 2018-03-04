@@ -225,8 +225,8 @@ def naive_bayes(dataset, option="tf", ngramSize=3):
   results = []
 
   # Note: we need to consider fake and real and choose the higher probability.
-  print("Running Multinomial Naive Bayes Classifier.. ", end='')
-  print()
+  print("Running Multinomial Naive Bayes Classifier (via "+option+").. ", end='')
+  # print()
   counter = 0
   for article in dataset['test_data']:
     # check if this article is a test_data
@@ -360,7 +360,7 @@ def naive_bayes(dataset, option="tf", ngramSize=3):
         'guess' : 0 if (cond_probability_fake > cond_probability_real) else 1,
         'actual' : dataset['data'][article]['class']
       }
-      print(result)
+      # print(result)
       results.append(result) 
       # break
   print("Done.")
@@ -393,42 +393,26 @@ def evaluate(results):
       else:
         true_negative += 1
   
-  return {
+  # collate results as percentages
+  s =  {
     'tp' : true_positive/total,
     'fp' : false_positive/total,
     'fn' : false_negative/total,
     'tn' : true_negative/total,
     'accuracy' : accuracy/total
   }
+  
+  # calculate precision:  TP/(TP+FN)
+  s['precision'] = s['tp']/(s['tp']+s['fn'])
+  # calculate recall: TP/(TP+FP)
+  s['recall'] = s['tp']/(s['tp']+s['fp'])
+  # calculate F1 Measure: 2*(precision*recall)/(precision+recall)
+  s['f1_measure'] = 2*(s['precision']*s['recall'])/(s['precision']+s['recall'])
 
-
-def calculateAccuracy(scores):
-  # compare the test data result with it's classed result.
-  print("Accuracy: ", end='')
-  print(str(scores['accuracy']*100) + "%")
-  return scores['accuracy']
-
-def calculatePrecision(s):
-  # TP/(TP+FN)
-  # our input is the scores generated in evaluate(results)
-  print("Precision: ", end='')
-  precision = s['tp']/(s['tp']+s['fn'])
-  print(str(precision*100) + "%")
-  return precision
-
-def calculateRecall(s):
-  # TP/(TP+FP)
-  print("Recall: ", end='')
-  recall = s['tp']/(s['tp']+s['fp'])
-  print(str(recall*100) + "%")
-  return recall
-
-def calculateF1Measure(precision, recall):
-  # 2*(Precision*Recall)/(Precision+Recall)
-  print("F1 Measure: ", end='')
-  f1 = 2*(precision*recall)/(precision+recall)
-  print(str(f1*100) + "%")
-  return f1
+  for i in s:
+    # show each percentage in terms of 0-100% and 3 decimal places
+    s[i] = round(s[i] * 100,3)
+  return s
 
 if __name__ == "__main__":
   import helpers
@@ -439,11 +423,14 @@ if __name__ == "__main__":
   gramSize = 2
   dataset = ngram(dataset, gramSize)
   dataset = preprocess_probabilities(dataset)
-  # results = naive_bayes(dataset, "ngrams", gramSize)
-  # results = naive_bayes(dataset, "tf")
-  results = naive_bayes(dataset, "tfidf")
-  scores = evaluate(results)
-  accuracy = calculateAccuracy(scores)
-  precision = calculatePrecision(scores)
-  recall = calculateRecall(scores)
-  f1Measure = calculateF1Measure(precision, recall)
+  # calculate naive bayes for our three methods
+  results_tf = naive_bayes(dataset, "tf")
+  results_tfidf = naive_bayes(dataset, "tfidf")
+  results_ngrams = naive_bayes(dataset, "ngrams", gramSize)
+
+  tf_scores = evaluate(results_tf)
+  tfidf_scores = evaluate(results_tfidf)
+  ngram_scores = evaluate(results_ngrams)
+  print("tf:\t", tf_scores)
+  print("tfidf:\t", tfidf_scores)
+  print("ngrams:\t", ngram_scores)
