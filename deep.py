@@ -5,9 +5,16 @@ print("Importing Machine Learning libraries.. ", end="")
 from gensim.models import Word2Vec
 import numpy as np
 import keras
+from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Activation, Dense, LSTM, Embedding, Conv2D, SimpleRNN
+from keras.callbacks import History
 print("Done.")
+
+# Long Short-Term Memory (15 marks)
+
+# The LSTM will use sequences of word2vec features extracted from each article. Set the maximum sequence length to 1000. Use zero-padding for shorter sentences (in Keras you can use the pad_sequencesutility function) In Keras you may use an Embedding input layer (https://keras.io/layers/embeddings/) to map the word2vec features into a structure that Keras can process. Remember to split your data into training and testing sets. When working with LSTMs start experimenting with a subset of the data until you are satisfied with your architecture and then run the model on all the training data. This will save you time when debugging your code or deciding on model parameters.
+
 # -----------------------------
 # Pre Processing and Feature Extraction
 # -----------------------------
@@ -187,6 +194,74 @@ def splitTrainingData(dataset):
     }
   }
 
+
+# Precision, measure and f1 measures were taken away from keras on 18th jan 2017. Fortunately, this can be reused again by looking at the keras commits on github.
+# https://github.com/keras-team/keras/commit/a56b1a55182acf061b1eb2e2c86b48193a0e88f7#diff-7b49e1c42728a58a9d08643a79f44cd4
+
+def precision(y_true, y_pred):
+  """
+  Precision metric.
+  Only computes a batch-wise average of precision.
+  Computes the precision, a metric for multi-label classification of
+  how many selected items are relevant.
+  """
+  true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+  predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+  precision = true_positives / (predicted_positives + K.epsilon())
+  return precision
+
+def recall(y_true, y_pred):
+  """
+  Recall metric.
+  Only computes a batch-wise average of recall.
+  Computes the recall, a metric for multi-label classification of
+  how many relevant items are selected.
+  """
+  true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+  possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+  recall = true_positives / (possible_positives + K.epsilon())
+  return recall
+
+
+def fbeta_score(y_true, y_pred, beta=1):
+  """Computes the F score.
+
+  The F score is the weighted harmonic mean of precision and recall.
+  Here it is only computed as a batchwise average, not globally.
+
+  This is useful for multilabel classification, where input samples can be
+  classified as sets of labels. By only using accuracy (precision) a model
+  would achieve a perfect score by simply assigning every class to every
+  input. In order to avoid this, a metric should penalize incorrect class
+  assignments as well (recall). The Fbeta score (ranged from 0.0 to 1.0)
+  computes this, as a weighted mean of the proportion of correct class
+  assignments vs. the proportion of incorrect class assignments.
+
+  With beta = 1, this is equivalent to a Fmeasure. With beta < 1, assigning
+  correct classes becomes more important, and with beta > 1 the metric is
+  instead weighted towards penalizing incorrect class assignments.
+  """
+  if beta < 0:
+      raise ValueError('The lowest choosable beta is zero (only precision).')
+
+  # If there are no true positives, fix the F score at 0 like sklearn.
+  if K.sum(K.round(K.clip(y_true, 0, 1))) == 0:
+      return 0
+
+  p = precision(y_true, y_pred)
+  r = recall(y_true, y_pred)
+  bb = beta ** 2
+  fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
+  return fbeta_score
+
+
+def fmeasure(y_true, y_pred):
+  """Computes the fmeasure, the harmonic mean of precision and recall.
+
+  Here it is only computed as a batchwise average, not globally.
+  """
+  return fbeta_score(y_true, y_pred, beta=1)
+
 def makeNN(word2num, netType="lstm", printSummary=False):
   print("Initialising Neural Net ("+netType+")... ", end="")
   # we'll use a sequential CNN
@@ -195,23 +270,23 @@ def makeNN(word2num, netType="lstm", printSummary=False):
   model.add(Embedding(len(word2num), 56))
 
   if netType == "cnn":
-    # initialise a recurrent layer
-    model.add(SimpleRNN(64))
+    model.add(SimpleRNN(64)) # initialise a recurrent layer
   else:
-    # initialise the LSTM layer size
-    model.add(LSTM(64))
-
+    model.add(LSTM(64)) # initialise the LSTM layer size
+    
   # initialise the dense layer size (this is the actual hidden layer)
   model.add(Dense(1, activation='sigmoid'))
   # group them together!
-  model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+  model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['binary_accuracy', precision, recall, fmeasure])
+
   if printSummary:
     # print the summary
     model.summary()
   print("Done.")
   return model
 
-def runNN(model, trainingData, epochs=2):
+def runNN(model, trainingData, history, epochs=2, netType="cnn"):
+  print("Running Neural Net (" + netType+")..")
   xtr = trainingData['train']['x']
   ytr = trainingData['train']['y']
   xte = trainingData['test']['x']
@@ -220,8 +295,35 @@ def runNN(model, trainingData, epochs=2):
   batch_size = 128
   # epochs is the number of passes over the dataset
   # start training!
-  model.fit(xtr, ytr, batch_size=batch_size, epochs=epochs, validation_data=(xte, yte))
+  model.fit(xtr, ytr, batch_size=batch_size, epochs=epochs, validation_split=0.0, validation_data=(xte, yte),  callbacks=[history], verbose=2)
+  print("Finished running neural net(" + netType+").")
   return model
+
+def evaluate(hist):
+  # val_loss is the value of cost function for your cross validation data and loss is the value of cost function for your training data. On validation data, neurons using drop out do not drop random neurons. The reason is that during training we use drop out in order to add some noise for avoiding over-fitting. During calculating cross validation, we are in recall phase and not in training phase. We use all the capabilities of the network.
+
+  # we want to keep the results that consider (cross) validation data, which are keys that include val_. therefore, we remove keys that don't include this.
+
+  # removing the scores of the training data since that's not what we're measuring.
+  bad = []
+  for i in hist.history:
+    if "val_" not in i:
+      bad.append(i)
+  for i in bad:
+    hist.history.pop(i, None)
+  
+  # rename the remaining keys by removing the "val_" section
+  newHist = {}
+  for i in hist.history:
+    new_i = i.replace("val_", "")
+    newHist[new_i] = hist.history[i]
+  hist.history = newHist
+
+  # round results to 3dp and on a scale of 0-100%
+  for i in hist.history:
+    hist.history[i] = np.round(np.multiply(hist.history[i],100),3).tolist()
+
+  return hist.history
 
 if __name__ == "__main__":
   print("Testing LSTM")
@@ -232,19 +334,29 @@ if __name__ == "__main__":
   dataset = helpers.loadJSON()
   dataset = shallow.tf(dataset)
   dataset = shallow.df(dataset)
-
+  # convert words to integers using our standardised glove dataset
+  # this is so we can process them in our neural networks
   word2int = word2int(dataset,gloveWords)
   dataset = convertArticlesToInts(dataset, word2int, wordLimit=1000)
+  # split data
   trainingData = splitTrainingData(dataset)
+  # set up neural networks (thanks keras)
   lstm_model = makeNN(word2int,"lstm")
   cnn_model = makeNN(word2int,"cnn")
-  lstm_results = runNN(lstm_model, trainingData)
-  cnn_results = runNN(cnn_model, trainingData)
+
+  # set number of rounds
+  epochs = 2
+
+  # store those deep results!
+  lstm_history = History()
+  cnn_history = History()
+  # run models on keras
+  cnn_results = runNN(cnn_model, trainingData, cnn_history, epochs, "cnn")
+  lstm_results = runNN(lstm_model, trainingData, lstm_history, epochs, "lstm")
+  print("LSTM:\t", evaluate(lstm_history))
+  print("CNN:\t", evaluate(cnn_history))
+
   print("Done")
-
-# Long Short-Term Memory (15 marks)
-
-# The LSTM will use sequences of word2vec features extracted from each article. Set the maximum sequence length to 1000. Use zero-padding for shorter sentences (in Keras you can use the pad_sequencesutility function) In Keras you may use an Embedding input layer (https://keras.io/layers/embeddings/) to map the word2vec features into a structure that Keras can process. Remember to split your data into training and testing sets. When working with LSTMs start experimenting with a subset of the data until you are satisfied with your architecture and then run the model on all the training data. This will save you time when debugging your code or deciding on model parameters.
 
 # Extra Notes
 """

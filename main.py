@@ -71,7 +71,7 @@ import shallow
 import helpers
 
 enable_shallow = True
-enable_deep = False
+enable_deep = True
 
 print("--:PRE PROCESSING:--------------------------------")
 
@@ -85,7 +85,8 @@ dataset = helpers.loadJSON()
 dataset = shallow.tf(dataset)
 dataset = shallow.df(dataset)
 dataset = shallow.tfidf(dataset)
-
+gramSize = 2
+dataset = shallow.ngram(dataset, gramSize)
 # process probabilities that we'll need for our naive bayes
 dataset = shallow.preprocess_probabilities(dataset)
 
@@ -94,15 +95,17 @@ dataset = shallow.preprocess_probabilities(dataset)
 
 if enable_shallow:
   print("--:SHALLOW:---------------------------------------")
-  # Shallow Classification
-  results = shallow.naive_bayes(dataset)
-
-  # evaluation methods for shallow results
-  scores = shallow.evaluate(results)
-  accuracy = shallow.calculateAccuracy(scores)
-  precision = shallow.calculatePrecision(scores)
-  recall = shallow.calculateRecall(scores)
-  f1Measure = shallow.calculateF1Measure(precision, recall)
+  # calculate naive bayes for our three methods
+  results_tf = shallow.naive_bayes(dataset, "tf")
+  results_tfidf = shallow.naive_bayes(dataset, "tfidf")
+  results_ngrams = shallow.naive_bayes(dataset, "ngrams", gramSize)
+  # print scores
+  tf_scores = shallow.evaluate(results_tf)
+  tfidf_scores = shallow.evaluate(results_tfidf)
+  ngram_scores = shallow.evaluate(results_ngrams)
+  print("tf:\t", tf_scores)
+  print("tfidf:\t", tfidf_scores)
+  print("ngrams:\t", ngram_scores)
 
 # ---------------------
 
@@ -121,8 +124,16 @@ if enable_deep:
   dataset = deep.convertArticlesToInts(dataset, word2int, wordLimit=1000)
   # structure data so we can use it against keras
   trainingData = deep.splitTrainingData(dataset)
-  # load neural networks
+  # load neural network models
   lstm_m, cnn_m = deep.makeNN(word2int,"lstm"), deep.makeNN(word2int,"cnn")
-  # perform testing
-  lstm_results = deep.runNN(lstm_m, trainingData)
-  cnn_results = deep.runNN(cnn_m, trainingData)
+  # set number of rounds
+  epochs = 2
+  # we need a place to store those deep results!
+  lstm_history = deep.History()
+  cnn_history = deep.History()
+  # run models on keras
+  cnn_results = deep.runNN(cnn_m, trainingData, cnn_history, epochs, "cnn")
+  lstm_results = deep.runNN(lstm_m, trainingData, lstm_history, epochs, "lstm")
+  # print results
+  print("LSTM:\t", deep.evaluate(lstm_history))
+  print("CNN:\t", deep.evaluate(cnn_history))
