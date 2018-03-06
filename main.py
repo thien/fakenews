@@ -113,21 +113,36 @@ if enable_deep:
   print("--:DEEP:------------------------------------------")
   import deep
   # Deep Feature Extraction
-  # dataset = deep.word2vec(dataset)
-  # print(dataset)
   glove = helpers.loadGlove()
   gloveWords = glove.keys()
+  # create a smaller glove dataset, and create a dictionary of word2ints
+  (glove,word2int) = deep.word2int(dataset,gloveWords,glove,threshold=2)
+  # convert the dataset into word2ints so we can use them in keras
+  dataset = deep.convertArticlesToInts(dataset,word2int,wordLimit=1000)
+
+  # Show that we can convert an article into a set of word2vec vectors
+  # This is not necessarily how the data is going to be interpreted,
+  #  - one does not simply load an input that is a multidimensional
+  #    vector into a neural network..?
+  someArticleID = list(dataset['data'].keys())[0]
+  someArticle = dataset['data'][someArticleID]['data']
+  print("\n Here's article", someArticleID,"in the form of a word2vec:")
+  thatArticleInWord2Vec = deep.word2Glove(someArticle, glove, word2int)
+  print(thatArticleInWord2Vec,"\n")
+
+  # What we do instead is convert the articles into integers,
+  # and load a set of weights as an embedding layer that converts those
+  # integers into weights from the glove word2vec dataset.
 
   # Deep Classification
-  # convert words in the dataset into gloveIDs
-  word2int = deep.word2int(dataset,gloveWords)
-  dataset = deep.convertArticlesToInts(dataset, word2int, wordLimit=1000)
+  # --------------------------------------------
   # structure data so we can use it against keras
   trainingData = deep.splitTrainingData(dataset)
   # load neural network models
-  lstm_m, cnn_m = deep.makeNN(word2int,"lstm"), deep.makeNN(word2int,"cnn")
+  lstm_m = deep.makeNN(glove,"lstm",useWeights=False)
+  cnn_m  = deep.makeNN(glove,"cnn", useWeights=False)
   # set number of rounds
-  epochs = 2
+  epochs = 3
   # we need a place to store those deep results!
   lstm_history = deep.History()
   cnn_history = deep.History()

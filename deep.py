@@ -1,4 +1,6 @@
 import helpers
+# some of the deep processing takes a lot of time..
+import datetime
 # I hope you like some deep learning
 print("Importing Machine Learning libraries.. ", end="")
 # import pandas as pd
@@ -74,12 +76,11 @@ def generateGloveDict(gloveWords, debug=False):
     print("Done.")
   return gloves
 
-def word2int(dataset, gloveWords, threshold=2, debug=True):
+def word2int(dataset, gloveWords, glove, threshold=2, debug=True):
   if debug:
     print("Generating text2int.. ", end="")
   # generate a list of words in glove
   text2int = generateGloveDict(gloveWords)
-  sizeMatters = len(text2int)
 
   # consider words that have been used more than our threshold
   popularWords = []
@@ -91,33 +92,65 @@ def word2int(dataset, gloveWords, threshold=2, debug=True):
 
   # make a list of the popular words and see whether they're in the gloves
   genericWords = []
+  absentWords = []
   for word in popularWords:
     if word in text2int.keys():
-      genericWords.append(1)
+      genericWords.append(word)
     else:
-      genericWords.append(0)
-  
-  # find words not in glove
-  absent_words = []
-  for word_ID in range(len(popularWords)):
-    if genericWords[word_ID] == 0:
-      absent_words.append(popularWords[word_ID])
+      absentWords.append(word)
 
-  # create entries in our text2int for the absent words (which are also popular!)
-  for word in absent_words:
-    text2int[word] = sizeMatters
-    sizeMatters += 1
-  if debug:
-    print("Done.")
 
   # also add null values for words that don't meet the threshold
   null_value = "!NULL!"
-  text2int[null_value] = sizeMatters
   # also add padding value for articles that are too short
   padding_value = "!PAD!"
-  text2int[padding_value] = int(sizeMatters)+1
 
-  return text2int
+  # -------------------------------
+
+  # create a null entry that we'll use for null and padding values.
+  dudEntry = np.zeros(glove["and"].shape)
+  # create a smaller glove dataset using only the words we'll need
+  # to consider
+  microGlove = np.zeros((len(genericWords)+2, glove["and"].shape[0]))
+  print("Creating micro glove with shape", microGlove.shape)
+
+  microGloveText2Ints = {
+    null_value : 0,
+    padding_value : 1
+  }
+  incrementer = 2
+  # now we need to remove the words in the glove dataset
+  # that isn't considered in the training data
+  # otherwise we're just wasting memory
+  for word in genericWords:
+    microGlove[incrementer] = glove[word]
+    microGloveText2Ints[word] = incrementer
+    incrementer += 1
+  for word in absentWords:
+    microGloveText2Ints[word] = 0
+
+  # now we can return the smaller word2vec!
+  return (microGlove,microGloveText2Ints)
+
+def word2Glove(article, glove, glovewords):
+  """
+  This is only used as a demonstration,
+  The actual implementation that uses word2vec -> keras is used differently.
+  I just want to get the marks ¯\_(ツ)_/¯
+  """
+  ArticleGlove = []
+  # also need a null entry for words that aren't in the glove
+  # dataset
+  nullVector = np.zeros(glove[0].shape)
+  # iterate through the words and make a vector o fit!
+  for word in article:
+    # check if this word exists in the glove set
+    if word in glovewords:
+      ArticleGlove.append(glove[glovewords[word]])
+    else:
+      ArticleGlove.append(nullVector)
+  # convert it into an numpy array and voila!
+  return np.array(ArticleGlove)
 
 def int2word(word2int):
   back = {}
@@ -165,6 +198,7 @@ def convertArticlesToInts(dataset, word2int, wordLimit=1000):
     article_array = dataset['data'][article]['data']
     data = text2int(article_array, word2int, wordLimit)
     dataset['data'][article]['t2i'] = data
+    # break
   return dataset
 
 def splitTrainingData(dataset):
@@ -194,7 +228,6 @@ def splitTrainingData(dataset):
     }
   }
 
-
 # Precision, measure and f1 measures were taken away from keras on 18th jan 2017. Fortunately, this can be reused again by looking at the keras commits on github.
 # https://github.com/keras-team/keras/commit/a56b1a55182acf061b1eb2e2c86b48193a0e88f7#diff-7b49e1c42728a58a9d08643a79f44cd4
 
@@ -221,7 +254,6 @@ def recall(y_true, y_pred):
   possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
   recall = true_positives / (possible_positives + K.epsilon())
   return recall
-
 
 def fbeta_score(y_true, y_pred, beta=1):
   """Computes the F score.
@@ -254,7 +286,6 @@ def fbeta_score(y_true, y_pred, beta=1):
   fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
   return fbeta_score
 
-
 def fmeasure(y_true, y_pred):
   """Computes the fmeasure, the harmonic mean of precision and recall.
 
@@ -262,12 +293,16 @@ def fmeasure(y_true, y_pred):
   """
   return fbeta_score(y_true, y_pred, beta=1)
 
-def makeNN(word2num, netType="lstm", printSummary=False):
+def makeNN(weights, netType="lstm", useWeights=False, activation="sigmoid", printSummary=False):
   print("Initialising Neural Net ("+netType+")... ", end="")
   # we'll use a sequential CNN
   model = keras.models.Sequential()
-  # initialise the embedding layer size
-  model.add(Embedding(len(word2num), 56))
+
+  # initialise the embedding layer
+  if useWeights:
+    model.add(Embedding(weights.shape[0], weights.shape[1], weights=[weights], trainable=False))
+  else:
+    model.add(Embedding(weights.shape[0], weights.shape[1]))
 
   if netType == "cnn":
     model.add(SimpleRNN(64)) # initialise a recurrent layer
@@ -325,6 +360,22 @@ def evaluate(hist):
 
   return hist.history
 
+def getMeanMeasurements(histories):
+  averaged = {}
+  # get the measurement keys and add them to our avg
+  for i in histories[0].keys():
+    # print(i, histories[0][i])
+    averaged[i] = []
+  # get each runthrough and add it to our list
+  for i in histories:
+    for measurement in i.keys():
+      averaged[measurement].append(np.mean(i[measurement]))
+  # calculate the mean of the results
+  for i in averaged.keys():
+    averaged[i] = np.round(np.mean(averaged[i]),3)
+  # return the results
+  return averaged
+
 if __name__ == "__main__":
   print("Testing LSTM")
   glove = helpers.loadGlove()
@@ -334,27 +385,47 @@ if __name__ == "__main__":
   dataset = helpers.loadJSON()
   dataset = shallow.tf(dataset)
   dataset = shallow.df(dataset)
+
   # convert words to integers using our standardised glove dataset
   # this is so we can process them in our neural networks
-  word2int = word2int(dataset,gloveWords)
+  (glove,word2int) = word2int(dataset,gloveWords,glove,threshold=2)
   dataset = convertArticlesToInts(dataset, word2int, wordLimit=1000)
   # split data
-  trainingData = splitTrainingData(dataset)
-  # set up neural networks (thanks keras)
-  lstm_model = makeNN(word2int,"lstm")
-  cnn_model = makeNN(word2int,"cnn")
-
+  data = splitTrainingData(dataset)
   # set number of rounds
-  epochs = 2
+  epochs = 1
+  loops = 10
 
-  # store those deep results!
-  lstm_history = History()
-  cnn_history = History()
-  # run models on keras
-  cnn_results = runNN(cnn_model, trainingData, cnn_history, epochs, "cnn")
-  lstm_results = runNN(lstm_model, trainingData, lstm_history, epochs, "lstm")
-  print("LSTM:\t", evaluate(lstm_history))
-  print("CNN:\t", evaluate(cnn_history))
+  activationMethods = ["sigmoid", "relu", "tanh", "linear"]
+  mass_history = {}
+  print("--")
+  for activation in activationMethods:
+    # store those deep results!
+    overallLSTMHistory = []
+    overallCNNHistory = []
+    for i in range(loops):
+      # set up neural networks (thanks keras)
+      lstm_model = makeNN(glove,"lstm",activation)
+      cnn_model = makeNN(glove,"cnn",activation)
+      lstm_h = History()
+      cnn_h = History()
+      # run models on keras
+      cnn_results = runNN(cnn_model, data, cnn_h, epochs, "cnn")
+      lstm_results = runNN(lstm_model, data, lstm_h, epochs, "lstm")
+      overallLSTMHistory.append(evaluate(lstm_h))
+      overallCNNHistory.append(evaluate(cnn_h))
+    # now we average the results and make an averaged list.
+    mass_history[activation] = {
+      "cnn " : getMeanMeasurements(overallCNNHistory),
+      "lstm" : getMeanMeasurements(overallLSTMHistory)
+    }
+
+  # print the list for future analysis
+  for i in mass_history:
+    print(i)
+    print(mass_history[i])
+  # print(mass_history)
+  print()
 
   print("Done")
 
