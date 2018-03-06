@@ -59,11 +59,11 @@ Once computed, a dataset object is created, containing each document in the data
 
 # Shallow Learning
 
-The majority of the shallow learning was implemented manually to help understand the inner workings of how shallow learning techniques work.
+Whilst there exist a variety of packages that may facilitate the shallow learning process, I have chosen to implement them manually to help understand the inner workings of how shallow learning techniques work. There is naturally a tradeoff however. For instance, the implementation I may have used might be not as efficent as the libraries.
 
 ## Term Frequency
 
-Each document is iterated, with each word being counted relative to the rest of the other words in the document. This is then stored in the document's object in a dictionary, where each word is a key, and their word count is the value.
+Each document is iterated, with each word being counted relative to the rest of the other words in the document. This is then stored in the document's object in a dictionary, where each word is a key, and their word count is the value. 
 
 ## Term-Frequency/Inverse Document Frequency
 
@@ -84,23 +84,54 @@ N-Grams are produced, using the document's cleaned word-list and are stored in t
 
 ## Naive Bayes Classifier
 
-Words that are found in the test document but not in the training document are **ignored.** This is chosen to reinforce the worth of the training data.
+Words that are found in the test document but not in the training document are **ignored.** This is chosen to reinforce the value of the training data.
 
 With $\alpha$ as the conditional probability of a word or a wordgroup for a given class, $\epsilon$ being the class itself, the naive bayes classifier is composed of the formula:
 
 $$\beta = (count(\alpha,\epsilon) + 1) / (count(\epsilon) + vocabulary)$$
 $$ P(X|Y) =  \beta \cdot \gamma $$
 
-Where $\gamma$ represents the probability of a class.
+Where $\gamma$ represents the probability of a class. For the n-grams model, they are treated in the same vein as term-frequency; for instance we collate the frequency of a particular n-gram to calculate their conditional probability. For TF-IDF, we substitute the term frequency with their tf-idf value.
 
-This formula is performed for each of the classes (fake and real), and the class is chosen based on the maximum value produced between the classes.
+This formula is used on each of the classes (fake and real), and the class is chosen based on whether its probability is higher than the other.
 
 # Deep Learning
 
 For deep learning, we subject each document using a public dataset, the glove word2vec model (which can be found [at https://nlp.stanford.edu/projects/glove/](https://nlp.stanford.edu/projects/glove/)) as a premise to compare the documents against. 
 
+Four different activation functions are tested to maximise the performance of both the LSTM and the regular recurrent neural network, Linear, ReLu, Sigmoid, and tanh. Whilst Linear and ReLu are quite similar, they all provide different ranges. Training was performed with one epoch, but was repeated 10 times to deduce an average. 
 
+Otherwise, the structure for both LSTM and the RNN models remain the same. A binary entropy loss function is used to reduce the chances of overfitting the training data. Root Mean Square propagation is chosen to adapte the learning rate for each of the parameters. This goes in hand with the training data, as it has varying article sizes (which could be either very short or extensibly long.) 
+<!-- 
+sigmoid
+{'cnn ': {'loss': 56.164, 'binary_accuracy': 71.167, 'precision': 58.173, 'recall': 59.009, 'fmeasure': 54.166}, 'lstm': {'loss': 52.938, 'binary_accuracy': 73.967, 'precision': 61.221, 'recall': 62.482, 'fmeasure': 57.105}}
+ReLu
+{'cnn ': {'loss': 53.409, 'binary_accuracy': 72.833, 'precision': 57.906, 'recall': 66.348, 'fmeasure': 57.772}, 'lstm': {'loss': 52.839, 'binary_accuracy': 74.3, 'precision': 62.782, 'recall': 59.082, 'fmeasure': 56.864}}
+tanh
+{'cnn ': {'loss': 55.59, 'binary_accuracy': 71.2, 'precision': 59.501, 'recall': 58.83, 'fmeasure': 54.626}, 'lstm': {'loss': 50.765, 'binary_accuracy': 75.833, 'precision': 64.396, 'recall': 59.558, 'fmeasure': 57.74}}
+linear
+{'cnn ': {'loss': 56.329, 'binary_accuracy': 68.9, 'precision': 58.024, 'recall': 54.824, 'fmeasure': 51.758}, 'lstm': {'loss': 51.656, 'binary_accuracy': 75.133, 'precision': 61.157, 'recall': 66.752, 'fmeasure': 59.706}} -->
 
+## Preliminary Activation Function Results
+
+| model	|	loss	|	accuracy	|	precision	|	recall	|	f1measure	|	activation	|
+|-------+-----------+-----------+-----------+-----------+-----------+-----------|
+|	cnn	|	56.329	|	68.9	|	58.024	|	54.824	|	51.758	|	linear	|
+|	cnn	|	56.164	|	71.167	|	58.173	|	59.009	|	54.166	|	sigmoid	|
+|	cnn	|	55.59	|	71.2	|	59.501	|	58.83	|	54.626	|	tanh	|
+|	lstm	|	52.839	|	74.3	|	62.782	|	59.082	|	56.864	|	ReLu	|
+|	lstm	|	52.938	|	73.967	|	61.221	|	62.482	|	57.105	|	sigmoid	|
+|	lstm	|	50.77	|	75.833	|	64.396	|	59.558	|	57.74	|	tanh	|
+|	cnn	|	53.409	|	72.8	|	57.906	|	66.348	|	57.772	|	ReLu	|
+|	lstm	|	51.656	|	75.133	|	61.157	|	66.752	|	59.706	|	linear  |
+
+Going with the F1 Measure (which is the harmonic mean of precision and recall), the linear activation function performs the best with our LSTM, and ReLu with our RNN. Oddly enough, 
+
+However, tanh performs second best for both our LSTM and RNN, and is therefore chosen as our activation function as choice.
+
+The vanishing gradient isn't necessarily a big issue due to the number of layers involved (which is not enough to justify the use of linear activation functions such as ReLu, as shown in our results).
+
+During testing, there may be the case where words that are in the test set may not exist in the training data or in the glove dataset. In this situation, we create a new vector that utilises the mean of the vectors of the first 1000 glove words. (Note that the glove dataset is ordered in terms of word frequency, so the most popular words appear first, and so on.) This is to help create a fair comparison between the shallow and deep learning methods. Naturally, sentence padding utilises a zero vector.
 
 # Results
 
@@ -112,11 +143,11 @@ ngrams:	 {'tp': 50.0, 'precision': 50.336, 'accuracy': 99.333, 'tn': 0.0, 'recal
 
 <!-- LSTM:	 {'recall': [73.909, 61.606], 'precision': [64.0, 74.667], 'fmeasure': [67.234, 67.331], 'loss': [38.141, 26.342], 'binary_accuracy': [85.667, 90.333]}
 CNN:	 {'recall': [54.152, 32.303], 'precision': [55.376, 62.359], 'fmeasure': [50.386, 42.474], 'loss': [59.438, 52.581], 'binary_accuracy': [66.0, 69.333]} -->
-
+<!-- 
 Additional Assessment Criteria:
 A.General Performance of the solution on the test data set
 -Are the results comparable or above the expected baseline (i.e. > 75% accuracy)? (10 Marks)
--How all the components work together to achieve the reported results (10 Marks)
+-How all the components work together to achieve the reported results (10 Marks) -->
 
 ## Shallow 
 
@@ -152,6 +183,9 @@ This may also help show why the precision score of TF-IDF is especially high com
 
 Running more epochs can naturally improve the quality of the classifier with the tradeoff of introducing possible overfitting of the data.
 
+An interesting fact is that the inclusion of weights reduces the overall performance of the LSTM and CNN. This may be due to the fact that words that are not considered in the glove dataset have a weighting of 0 and may spoil the propagation of values on a recurrent neural network.
+
+Due to the 
 
 <!-- A first step is to understand the types of errors our model makes, and which kind of errors are least desirable. In our example, false positives are classifying an irrelevant tweet as a disaster, and false negatives are classifying a disaster as an irrelevant tweet. If the priority is to react to every potential event, we would want to lower our false negatives. If we are constrained in resources however, we might prioritize a lower false positive rate to reduce false alarms. A good way to visualize this information is using a Confusion Matrix, which compares the predictions our model makes with the true label. Ideally, the matrix would be a diagonal line from top left to bottom right (our predictions match the truth perfectly).
 
@@ -163,5 +197,14 @@ Due to the inherent differences between the two approaches, it makes it very dif
 
 # Conclusion
 
+Naive Bayes is a very strong generative classifier that requires very little data for it to work effectively, and the same can be said for LSTMs (or RNNs in general) as a discriminative model. They are however, very different methods of solving the same task. This disparity is represented through the inherent tradeoffs between the two. Naive-Bayes runs in a fraction of the time compared to Recurrent Neural Networks, and from our training data the immediate run shows naive bayes performing better overall on one epoch compared to our deep learning models.
+
+RNN's are naturally sequential, and for words that do not exist in the training data, we can see the distruption in performance, as shown in our results. 
+
+I would argue that the dataset is not large enough to justify the use of a RNN.
+
+One could further the performance of both classifiers by either feeding the test data into the training dataset, and, in the case for RNNs, we could increase the epochs (the runtime over the dataset). 
+
 <!-- 
-Describe your conclusion of the use of the two approaches and discuss which approach you think is fit for purpose. Be creative in presenting the results in a clear and understandable format. Write a maximum of 2000 words. Figures and tables are excluded from the word count.(20 Marks) -->
+Describe your conclusion of the use of the two approaches and discuss which approach you think is fit for purpose. Be creative in presenting the results in a clear and understandable format. Write a maximum of 2000 words. Figures and tables are excluded from the word count.(20 Marks)
+-->
