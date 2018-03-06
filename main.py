@@ -71,7 +71,7 @@ import shallow
 import helpers
 
 enable_shallow = True
-enable_deep = True
+enable_deep = False
 
 print("--:PRE PROCESSING:--------------------------------")
 
@@ -85,7 +85,7 @@ dataset = helpers.loadJSON()
 dataset = shallow.tf(dataset)
 dataset = shallow.df(dataset)
 dataset = shallow.tfidf(dataset)
-gramSize = 2
+gramSize = 3
 dataset = shallow.ngram(dataset, gramSize)
 # process probabilities that we'll need for our naive bayes
 dataset = shallow.preprocess_probabilities(dataset)

@@ -293,7 +293,7 @@ def fmeasure(y_true, y_pred):
   """
   return fbeta_score(y_true, y_pred, beta=1)
 
-def makeNN(weights, netType="lstm", useWeights=False, activation="sigmoid", printSummary=False):
+def makeNN(weights, netType="lstm", useWeights=False, activation="tanh", printSummary=False):
   print("Initialising Neural Net ("+netType+")... ", end="")
   # we'll use a sequential CNN
   model = keras.models.Sequential()
@@ -310,7 +310,7 @@ def makeNN(weights, netType="lstm", useWeights=False, activation="sigmoid", prin
     model.add(LSTM(64)) # initialise the LSTM layer size
     
   # initialise the dense layer size (this is the actual hidden layer)
-  model.add(Dense(1, activation='sigmoid'))
+  model.add(Dense(1, activation=activation))
   # group them together!
   model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['binary_accuracy', precision, recall, fmeasure])
 
@@ -376,26 +376,13 @@ def getMeanMeasurements(histories):
   # return the results
   return averaged
 
-if __name__ == "__main__":
-  print("Testing LSTM")
-  glove = helpers.loadGlove()
-  gloveWords = glove.keys()
-  import shallow
-  # load our dataset.
-  dataset = helpers.loadJSON()
-  dataset = shallow.tf(dataset)
-  dataset = shallow.df(dataset)
-
-  # convert words to integers using our standardised glove dataset
-  # this is so we can process them in our neural networks
-  (glove,word2int) = word2int(dataset,gloveWords,glove,threshold=2)
-  dataset = convertArticlesToInts(dataset, word2int, wordLimit=1000)
-  # split data
-  data = splitTrainingData(dataset)
-  # set number of rounds
-  epochs = 1
-  loops = 10
-
+def evaluateActivationFunctions(data, glove, epochs=1, loops=10):
+  """
+  This function is used to determine the effectiveness of different
+  activation functions we have at our disposal. The report discusses
+  using tanh as it is the best overall contender. However,
+  the tests itself can be rerun.
+  """
   activationMethods = ["sigmoid", "relu", "tanh", "linear"]
   mass_history = {}
   print("--")
@@ -424,15 +411,41 @@ if __name__ == "__main__":
   for i in mass_history:
     print(i)
     print(mass_history[i])
-  # print(mass_history)
   print()
 
-  print("Done")
 
-# Extra Notes
-"""
-http://www.deeplearningbook.org/
-http://adventuresinmachinelearning.com/recurrent-neural-networks-lstm-tutorial-tensorflow/
-http://adventuresinmachinelearning.com/convolutional-neural-networks-tutorial-tensorflow/
-http://adventuresinmachinelearning.com/python-tensorflow-tutorial/
-"""
+if __name__ == "__main__":
+  print("Testing LSTM")
+  glove = helpers.loadGlove()
+  gloveWords = glove.keys()
+  import shallow
+  # load our dataset.
+  dataset = helpers.loadJSON()
+  dataset = shallow.tf(dataset)
+  dataset = shallow.df(dataset)
+
+  # convert words to integers using our standardised glove dataset
+  # this is so we can process them in our neural networks
+  (glove,word2int) = word2int(dataset,gloveWords,glove,threshold=2)
+  dataset = convertArticlesToInts(dataset, word2int, wordLimit=1000)
+  # split data
+  data = splitTrainingData(dataset)
+
+  # evaluate the different activation functions
+  # evaluateActivationFunctions(data, glove)
+  
+  # set number of rounds
+  epochs = 1
+
+  # set up neural network models
+  lstm_model = makeNN(glove,"lstm",activation="sigmoid")
+  cnn_model = makeNN(glove,"cnn",activation="sigmoid")
+  lstm_h = History()
+  cnn_h = History()
+  # run models on keras
+  cnn_results = runNN(cnn_model, data, cnn_h, epochs, "cnn")
+  lstm_results = runNN(lstm_model, data, lstm_h, epochs, "lstm")
+  print("LSTM:",evaluate(lstm_h))
+  print("CNN: ",evaluate(cnn_h))
+
+  print("Done")
