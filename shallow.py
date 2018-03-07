@@ -346,10 +346,10 @@ def naive_bayes(dataset, option="tf", ngramSize=3):
             fake_cond_probs.append(cond_prob_word_fake)
             real_cond_probs.append(cond_prob_word_real)
         # values are so small we need to consider it in logarithmic form.
-        # cond_probability_fake = np.sum(np.log10(np.array(fake_cond_probs)))
-        # cond_probability_real = np.sum(np.log10(np.array(real_cond_probs)))
-        cond_probability_fake = np.prod(np.array(fake_cond_probs))
-        cond_probability_real = np.prod(np.array(real_cond_probs))
+        cond_probability_fake = np.sum(np.log10(np.array(fake_cond_probs)))
+        cond_probability_real = np.sum(np.log10(np.array(real_cond_probs)))
+        # cond_probability_fake = np.prod(np.array(fake_cond_probs))
+        # cond_probability_real = np.prod(np.array(real_cond_probs))
         # cond_probability_fake = np.sum(np.array(fake_cond_probs))
         # cond_probability_real = np.sum(np.array(real_cond_probs))
 
