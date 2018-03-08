@@ -55,9 +55,9 @@ def cleanSentence(x):
 
   x = x.replace(".", ". ")
 
-  # if there are commas between numbers
-  # merge them.
+  # remove twitter urls entirely..
   x = expressions['twittercom'].sub("", x)
+
   # if there is an apostrophe next to two letters
   # then delete everything past the apostrophe, including itself.
   x = x.replace("’s", "")
@@ -80,21 +80,16 @@ def cleanSentence(x):
   x = re.sub("[^a-zA-Z0-9.]"," ", x) # The text to search
   # remove punctuation
   x = ''.join(c for c in x if c not in punctuation)
-  # remove stop words
   return x
 
 def cleanArticle(x):
   # split words prior to submission
-  # print(x)
-
   x = x.split(" ")
   # remove empty strings
   x = list(filter(None, x))
   # remove stopwords
   x = [word.rstrip('.') for word in x if word not in stopwords.keys()]
-  # x = " ".join(x)
-  # print(x)
-  # input()
+  # return list of words
   return x
 
 def sanitise(filename="news_ds.csv", numberOfTestData=150):
@@ -115,8 +110,8 @@ def sanitise(filename="news_ds.csv", numberOfTestData=150):
   # skip the first line; we know what it is.
   for i in range(1,len(lines)):
     if i % 300 == 0:
-      print("Loading: " + str(round((i/len(lines)*100),2)) + "%\r", end="" )
-  # for i in range(1, 33):
+      print("Creating sanitised dataset from scratch.. Loading: " + str(round((i/len(lines)*100),2)) + "%\r", end="" )
+
     # The ID tends to be in the first 8 characters of the line
     line = lines[i]
     # Default pos of text entry is 0.
@@ -165,7 +160,7 @@ def sanitise(filename="news_ds.csv", numberOfTestData=150):
       if debug:
         input()
         print(chr(27) + "[2J")
-  print("Loading: 100.0%")
+  print("Creating sanitised dataset from scratch.. Loading: 100.0% ",end="")  
   text_file.close()
 
   # decide test and training data
@@ -178,11 +173,6 @@ def sanitise(filename="news_ds.csv", numberOfTestData=150):
     training_set['test_data'][i] = True
 
   return training_set
-
-# def saveJSON(dictionary):
-#   with open('trainingset.json', 'w') as fp:
-#     json.dump(dictionary, fp)
-#   print("saved results to trainingset.json")
 
 if __name__ == "__main__":
   import helpers
