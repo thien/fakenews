@@ -28,14 +28,14 @@ Submission:
 ''' -->
 
 # Program Prerequisites
-The python program utilises numpy, keras and nltk. Keras by default installs tensorflow, but it is recommended to install tensorflow manually to optimise its performance (as it's own installion compiles the program based on the user's machine, whereas installing via pip3 does not.) The program will attempt to download the GloVe dataset itself.
+The python program utilises numpy, keras and nltk. Keras by default installs tensorflow, but it is recommended to install tensorflow manually to optimise its performance (as it's own installion compiles the program based on the user's machine, whereas installing via pip3 does not.) The program will attempt to download the GloVe dataset itself. (It cannot however, show a loading bar but it will verify integrity!)
 
     pip3 install numpy nltk tensorflow keras
     python3 main.py
 
 # Testing Configuration
 
-Both learning methods are subject to a machine utilising an `intel i7-6600u` with 12 Gigabytes of DD4 memory, alongside NVM-E storage. Due to the relatively large nature of the word2vec dataset which will be used, running times may vary dependent the hardware utilised such as the storage, memory and the processor itself. 
+For the sake of setup, both learning techniques are subject to a machine utilising an `intel i7-6600u` with 12 Gigabytes of DD4 memory, alongside NVM-E storage. Due to the relatively large nature of the word2vec dataset which will be used, running times may vary dependent the hardware utilised such as the storage, memory and the processor itself. 
 
 # Data Sanitisation
 
@@ -57,15 +57,24 @@ The reasoning behind the removal of stopwords is related to the fact that the wo
 
 Once computed, a dataset object is created, containing each document in the dataset. Each document is an object itself, containing the raw article, and the cleaned data, (now a list of words in python). While this is not necessarily the most efficent method, it was chosen to help understand the learning mechanisms used in the assignment.
 
+The documents are split such that there is 300 documents which are used as test data and the rest is used as training data.
+
 # Shallow Learning
 
 Whilst there exist a variety of packages that may facilitate the shallow learning process, I have chosen to implement them manually to help understand the inner workings of how shallow learning techniques work. There is naturally a tradeoff however. For instance, the implementation I may have used might be not as efficent as the libraries.
+
+Term Frequency Inverse Document Frequency (TF-IDF) is weighting scheme that is commonly used in information retrieval tasks. The idea is to treat each document as a bag of words, ignoring the exact ordering of the words in the document while retaining information about the occurrences of each word.
 
 ## Term Frequency
 
 Each document is iterated, with each word being counted relative to the rest of the other words in the document. This is then stored in the document's object in a dictionary, where each word is a key, and their word count is the value. 
 
 ## Term-Frequency/Inverse Document Frequency
+
+<!-- 
+TF-IDF is a composite weight: one first computes the normalized Term Frequency, which is really just the number of times a word appears in a document, divided by the total number of words in that document. Then, the Inverse Document Frequency is computed as the logarithm of the number of documents in the corpus divided by the number of documents where the term t_i appears. Or, in symbols:
+ -->
+
 
 A global document frequency $\mu$ for words is introduced, using the training documents's words. For each document, we iterate through its term frequency and accumulate them to $\mu$. This ensures that each unique word is counted per document as opposed to their word-count/term-frequency. Once this is accumulated, Each document is iterated through and a TF-IDF value is calculated for each word $w$ using the formula $tfidf(w) = tf(w) * df(w)^{-1}$. TF-IDF values are stored in the same style as how term-frequency is stored in a document's object.
 
@@ -101,7 +110,7 @@ For deep learning, we subject each document using a public dataset, the glove wo
 
 Four different activation functions are tested to maximise the performance of both the LSTM and the regular recurrent neural network, Linear, ReLu, Sigmoid, and tanh. Whilst Linear and ReLu are quite similar, they all provide different ranges. Training was performed with one epoch, but was repeated 10 times to deduce an average. 
 
-Otherwise, the structure for both LSTM and the RNN models remain the same. A binary entropy loss function is used to reduce the chances of overfitting the training data. Root Mean Square propagation is chosen to adapte the learning rate for each of the parameters. This goes in hand with the training data, as it has varying article sizes (which could be either very short or extensibly long.) 
+Otherwise, the structure for both LSTM and the RNN models remain the same. A binary entropy loss function is used to reduce the chances of overfitting the training data. Root Mean Square propagation is chosen to adapt the learning rate for each of the parameters. This goes in hand with the training data, as it has varying article sizes (which could be either very short or extensibly long.) Dropout layers are used to also help reduce the chances of overfitting of the data.
 <!-- 
 sigmoid
 {'cnn ': {'loss': 56.164, 'binary_accuracy': 71.167, 'precision': 58.173, 'recall': 59.009, 'fmeasure': 54.166}, 'lstm': {'loss': 52.938, 'binary_accuracy': 73.967, 'precision': 61.221, 'recall': 62.482, 'fmeasure': 57.105}}
@@ -112,6 +121,8 @@ tanh
 linear
 {'cnn ': {'loss': 56.329, 'binary_accuracy': 68.9, 'precision': 58.024, 'recall': 54.824, 'fmeasure': 51.758}, 'lstm': {'loss': 51.656, 'binary_accuracy': 75.133, 'precision': 61.157, 'recall': 66.752, 'fmeasure': 59.706}} -->
 
+Sigmoid is used as our activation function. This is a natural decision, due to its range (from 0 to 1 inclusive), which fits well with the probability ranges needed to determine the two classes.
+<!-- 
 ## Preliminary Activation Function Results
 
 | model	|	loss	|	accuracy	|	precision	|	recall	|	f1measure	|	activation	|
@@ -127,65 +138,60 @@ linear
 
 Going with the F1 Measure (which is the harmonic mean of precision and recall), the linear activation function performs the best with our LSTM, and ReLu with our RNN. Oddly enough, 
 
-However, tanh performs second best for both our LSTM and RNN, and is therefore chosen as our activation function as choice.
+However, tanh performs second best for both our LSTM and RNN, and is therefore chosen as our activation function as choice. -->
 
 The vanishing gradient isn't necessarily a big issue due to the number of layers involved (which is not enough to justify the use of linear activation functions such as ReLu, as shown in our results).
 
 During testing, there may be the case where words that are in the test set may not exist in the training data or in the glove dataset. In this situation, we create a new vector that utilises the mean of the vectors of the first 1000 glove words. (Note that the glove dataset is ordered in terms of word frequency, so the most popular words appear first, and so on.) This is to help create a fair comparison between the shallow and deep learning methods. Naturally, sentence padding utilises a zero vector.
 
 # Results
-
-<!-- 
-tf:	 {'tp': 43.667, 'precision': 49.81, 'accuracy': 87.667, 'tn': 6.333, 'recall': 87.919, 'f1_measure': 63.592, 'fn': 44.0, 'fp': 6.0}
-tfidf:	 {'tp': 48.667, 'precision': 94.194, 'accuracy': 51.667, 'tn': 1.333, 'recall': 50.871, 'f1_measure': 66.063, 'fn': 3.0, 'fp': 47.0}
-ngrams:	 {'tp': 50.0, 'precision': 50.336, 'accuracy': 99.333, 'tn': 0.0, 'recall': 98.684, 'f1_measure': 66.667, 'fn': 49.333, 'fp': 0.667} -->
-
-
-<!-- LSTM:	 {'recall': [73.909, 61.606], 'precision': [64.0, 74.667], 'fmeasure': [67.234, 67.331], 'loss': [38.141, 26.342], 'binary_accuracy': [85.667, 90.333]}
-CNN:	 {'recall': [54.152, 32.303], 'precision': [55.376, 62.359], 'fmeasure': [50.386, 42.474], 'loss': [59.438, 52.581], 'binary_accuracy': [66.0, 69.333]} -->
-<!-- 
+<!--
 Additional Assessment Criteria:
 A.General Performance of the solution on the test data set
 -Are the results comparable or above the expected baseline (i.e. > 75% accuracy)? (10 Marks)
--How all the components work together to achieve the reported results (10 Marks) -->
+-How all the components work together to achieve the reported results (10 Marks)
+-->
 
 ## Shallow 
 
 | Method   | Precision | Accuracy | Recall | F1 Measure | Time Taken |
 |----------|-----------|----------|--------|------------|------------|
-| TF       | 49.81     | 87.68    | 87.92  | 63.59      | Negligible |
-| TF-IDF   | 94.19     | 51.67    | 50.87  | 66.06      | Negligible |
+| TF       | 50.38     | 88.00    | 87.50  | 63.94      | Negligible |
+| TF-IDF   | 51.70     | 88.33    | 86.16  | 64.62      | Negligible |
 | Trigrams | 50.34     | 99.33    | 98.68  | 66.67      | Negligible |
 | Bigrams  | 50.34     | 99.33    | 98.68  | 66.67      | Negligible |
 
+Interestingly, the performance difference between TF and TF-IDF is within margin of error. This may be related to the fact that words that may be considered significant on the test set might not be in the training data. This can also explain why TF has a higher recall score i.e. it returns more relevant results than TF-IDF, and that the precision score of TF-IDF is especially high compared to the other methods.
+
+Unsurprisingly, the n-grams method performs strongest, but it may be the case that the use of n-grams would be too sparse, given the size of the dataset.
 <!-- 
 In simple terms, high precision means that an algorithm returned substantially more relevant results than irrelevant ones, while high recall means that an algorithm returned most of the relevant results.
 
 The F1 score is the harmonic average of the precision and recall, where an F1 score reaches its best value at 1 (perfect precision and recall) and worst at 0.
 -->
 
-Out of our shallow learning methods, we can see
-
-TF-IDF performs the worst in terms of accuracy, which makes sense. Words that are necessarily unique to a given test document may not be considered on training data, which makes it difficult to precisely quantify the significance of those particular words. It also happens to be the case that those words would hold more weight than other words that are considered otherwise in other documents. 
-
-In other terms, TF-IDF doesn't differentiate between the terms and the perspective of conveyed sentiments (as is the case with all shallow learning methods). For instance, we assume the training set has the words "toaster", "bad", "good" and the test data contains "magnet", "good". Since we have a weighting for "good" as it is in the training set, we do not have any information on the term "magnet", even though the term itself holds more semantic information than "good".
-
-This may also help show why the precision score of TF-IDF is especially high compared to the other methods.
-
 ## Deep
 
-| Method    | Precision | Accuracy | Recall | F1 Measure | Time Taken |
+### Without Weights
+
+| Method    | Precision | Accuracy | Recall | F1 Measure | Time Taken (Per Epoch) |
 |-----------|-----------|----------|--------|------------|------------|
 | LSTM (E1) | 64.0      | 85.667   | 73.909 | 67.234     | 40s        |
-| CNN (E1)  | 55.376    | 66.0     | 54.152 | 50.386     | 23s        |
+| RNN (E1)  | 55.376    | 66.0     | 54.152 | 50.386     | 23s        |
 | LSTM (E2) | 74.667    | 90.333   | 61.606 | 67.331     | 41s        |
-| CNN (E2)  | 62.359    | 69.333   | 32.303 | 42.474     | 23s        |
+| RNN (E2)  | 62.359    | 69.333   | 32.303 | 42.474     | 23s        |
 
-Running more epochs can naturally improve the quality of the classifier with the tradeoff of introducing possible overfitting of the data.
+### With Weights
 
-An interesting fact is that the inclusion of weights reduces the overall performance of the LSTM and CNN. This may be due to the fact that words that are not considered in the glove dataset have a weighting of 0 and may spoil the propagation of values on a recurrent neural network.
+| Method    | Precision | Accuracy | Recall | F1 Measure | Time Taken (Per Epoch) |
+|-----------|-----------|----------|--------|------------|------------|
+| LSTM (E1) | 66.21     | 71.12    | 63.70  | 63.771     | 62s        |
+| RNN (E1)  | 59.32     | 74.33    | 65.17  | 57.581     | 20s        |
+| LSTM (E10) | 71.57    | 93.333   | 80.061 | 74.744     | 55s        |
+| RNN (E10)  | 64.74    | 78.670   | 59.42  | 60.56      | 23s        |
 
-Due to the 
+An interesting fact is that the inclusion of weights reduces the initial performance of the LSTM and CNN. This may be due to the fact that words that are not considered in the glove dataset have a weighting of 0 and may spoil the propagation of values on a recurrent neural network. It may also relate to the fact that popular words are indexed with a lower value, i.e. less common words will have an higher index. As we are feeding the indexes of the words into Keras, it would take that into account (notwithstanding the weights). 
+This is is the case for 1 epoch however, running more epochs naturally improved the quality of the classifier, visibly showing a higher level of accuracy for the model with weights.
 
 <!-- A first step is to understand the types of errors our model makes, and which kind of errors are least desirable. In our example, false positives are classifying an irrelevant tweet as a disaster, and false negatives are classifying a disaster as an irrelevant tweet. If the priority is to react to every potential event, we would want to lower our false negatives. If we are constrained in resources however, we might prioritize a lower false positive rate to reduce false alarms. A good way to visualize this information is using a Confusion Matrix, which compares the predictions our model makes with the true label. Ideally, the matrix would be a diagonal line from top left to bottom right (our predictions match the truth perfectly).
 
@@ -193,15 +199,15 @@ Our classifier creates more false negatives than false positives (proportionally
 
 <!-- https://www.instapaper.com/read/1009550406 -->
 
-Due to the inherent differences between the two approaches, it makes it very difficu
-
 # Conclusion
+
+In terms of shallow feature extraction, it is quite difficult to justify using TF-IDF for a classifier task as its intended use is not necessarily relevant. Naive-Bayes is commonly defined using TF as the premise, and we can see that it is sufficent to provide a high degree of accuracy. That being said, the use of n-grams has shown to perform to a near-perfect accuracy.
 
 Naive Bayes is a very strong generative classifier that requires very little data for it to work effectively, and the same can be said for LSTMs (or RNNs in general) as a discriminative model. They are however, very different methods of solving the same task. This disparity is represented through the inherent tradeoffs between the two. Naive-Bayes runs in a fraction of the time compared to Recurrent Neural Networks, and from our training data the immediate run shows naive bayes performing better overall on one epoch compared to our deep learning models.
 
 RNN's are naturally sequential, and for words that do not exist in the training data, we can see the distruption in performance, as shown in our results. 
 
-I would argue that the dataset is not large enough to justify the use of a RNN.
+I would argue that the dataset is not large enough to justify the use of a RNN. A strong performance can be seen for the shallow learning methods (tf, n-grams) in the fraction of the time of the deep learning methods. Within the immediate context, this would suffice. 
 
 One could further the performance of both classifiers by either feeding the test data into the training dataset, and, in the case for RNNs, we could increase the epochs (the runtime over the dataset). 
 
