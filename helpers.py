@@ -17,7 +17,7 @@ def loadJSON(trainingFile='trainingset.json'):
     print("Done.")
   except:
     print("Can't load '"+trainingFile+"'.")
-    print("Creating dataset from scratch.. ", end='')
+    print("Creating sanitised dataset from scratch.. \r", end='')
     training_data = san.sanitise("news_ds.csv")
     print("Done.")
   return training_data
