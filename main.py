@@ -71,7 +71,7 @@ import shallow
 import helpers
 
 enable_shallow = True
-enable_deep = False
+enable_deep = True
 
 print("--:PRE PROCESSING:--------------------------------")
 
@@ -97,9 +97,9 @@ if enable_shallow:
   results_tfidf = shallow.naive_bayes(dataset, "tfidf")
   results_ngrams = shallow.naive_bayes(dataset, "ngrams", gramSize)
   # print scores
-  tf_scores = shallow.evaluate(results_tf)
-  tfidf_scores = shallow.evaluate(results_tfidf)
-  ngram_scores = shallow.evaluate(results_ngrams)
+  tf_scores = helpers.evaluate(results_tf)
+  tfidf_scores = helpers.evaluate(results_tfidf)
+  ngram_scores = helpers.evaluate(results_ngrams)
   print("tf:\t", tf_scores)
   print("tfidf:\t", tfidf_scores)
   print("ngrams:\t", ngram_scores)
@@ -135,17 +135,21 @@ if enable_deep:
   # --------------------------------------------
   # structure data so we can use it against keras
   trainingData = deep.splitTrainingData(dataset)
-  # load neural network models
-  lstm_m = deep.makeNN(glove,"lstm",useWeights=True)
-  cnn_m  = deep.makeNN(glove,"cnn", useWeights=True)
-  # set number of rounds
-  epochs = 5
-  # we need a place to store those deep results!
-  lstm_history = deep.History()
-  cnn_history = deep.History()
+  
+  epochs = 10
+
+  # set up neural network models
+  lstm_model = deep.makeNN(glove,"lstm",activation="sigmoid",useWeights=True,useDropout=True)
+  rnn_model = deep.makeNN(glove,"rnn",activation="sigmoid",useWeights=True,useDropout=True)
+  lstm_h = deep.History()
+  rnn_h = deep.History()
   # run models on keras
-  cnn_results = deep.runNN(cnn_m, trainingData, cnn_history, epochs, "cnn")
-  lstm_results = deep.runNN(lstm_m, trainingData, lstm_history, epochs, "lstm")
+  (_, rnn_scores) = deep.runNN(rnn_model, trainingData, rnn_h, epochs, "rnn")
+  (_, lstm_scores) = deep.runNN(lstm_model, trainingData, lstm_h, epochs, "lstm")
   # print results
-  print("LSTM:\t", deep.evaluate(lstm_history))
-  print("CNN:\t", deep.evaluate(cnn_history))
+  print("LSTM:\t",helpers.evaluate(lstm_scores))
+  print("RNN:\t",helpers.evaluate(rnn_scores))
+  if enable_shallow:
+    print("tf:\t", tf_scores)
+    print("tfidf:\t", tfidf_scores)
+    print("ngrams:\t", ngram_scores)
