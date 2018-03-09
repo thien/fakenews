@@ -57,7 +57,7 @@ The reasoning behind the removal of stopwords is related to the fact that the wo
 
 Once computed, a dataset object is created, containing each document in the dataset. Each document is an object itself, containing the raw article, and the cleaned data, (now a list of words in python). While this is not necessarily the most efficent method, it was chosen to help understand the learning mechanisms used in the assignment.
 
-The documents are split such that there is 300 documents which are used as test data and the rest is used as training data.
+The documents are split such that there is 300 documents (150 fake, 150 real) which are used as test data and the rest is used as training data. This allocation allows for plentiful training data, and having an equal amount of the two datasets helps to add weighting to the accuracy scores during evaluation. It also helps that the training set is also well balanced, i.e out of the 6331 entries scraped in the dataset, 3164 are fake and 3171 are real.
 
 # Shallow Learning
 
@@ -121,7 +121,7 @@ tanh
 linear
 {'cnn ': {'loss': 56.329, 'binary_accuracy': 68.9, 'precision': 58.024, 'recall': 54.824, 'fmeasure': 51.758}, 'lstm': {'loss': 51.656, 'binary_accuracy': 75.133, 'precision': 61.157, 'recall': 66.752, 'fmeasure': 59.706}} -->
 
-Sigmoid is used as our activation function. This is a natural decision, due to its range (from 0 to 1 inclusive), which fits well with the probability ranges needed to determine the two classes.
+Sigmoid is used as our activation function. This is a natural decision as its range (from 0 to 1 inclusive) fits well with the probability ranges needed to determine the two classes.
 <!-- 
 ## Preliminary Activation Function Results
 
@@ -152,14 +152,16 @@ A.General Performance of the solution on the test data set
 -How all the components work together to achieve the reported results (10 Marks)
 -->
 
+For the sake of performance measures, we only interpret the accuracy, precision, recall and F1 scores for both classification methods.
+
 ## Shallow 
 
 | Method   | Precision | Accuracy | Recall | F1 Measure | Time Taken |
 |----------|-----------|----------|--------|------------|------------|
 | TF       | 50.38     | 88.00    | 87.50  | 63.94      | Negligible |
 | TF-IDF   | 51.70     | 88.33    | 86.16  | 64.62      | Negligible |
-| Trigrams | 50.34     | 99.33    | 98.68  | 66.67      | Negligible |
 | Bigrams  | 50.34     | 99.33    | 98.68  | 66.67      | Negligible |
+| Trigrams | 50.34     | 99.33    | 98.68  | 66.67      | Negligible |
 
 Interestingly, the performance difference between TF and TF-IDF is within margin of error. This may be related to the fact that words that may be considered significant on the test set might not be in the training data. This can also explain why TF has a higher recall score i.e. it returns more relevant results than TF-IDF, and that the precision score of TF-IDF is especially high compared to the other methods.
 
@@ -182,6 +184,26 @@ The F1 score is the harmonic average of the precision and recall, where an F1 sc
 | RNN (E2)  | 62.359    | 69.333   | 32.303 | 42.474     | 23s        |
 
 ### With Weights
+<!-- 
+sigmoid
+{'rnn ': {'loss': 48.195, 'binary_accuracy': 76.647, 'precision': 62.181, 'recall': 62.805, 'fmeasure': 58.917}, 'lstm': {'loss': 45.329, 'binary_accuracy': 79.35, 'precision': 64.187, 'recall': 68.264, 'fmeasure': 62.019}} 
+
+
+-------
+sigmoid
+{'rnn ': {'loss': 41.242, 'binary_accuracy': 82.567, 'precision': 67.475, 'recall': 69.44, 'fmeasure': 65.416}, 'lstm': {'loss': 35.862, 'binary_accuracy': 90.033, 'precision': 71.394, 'recall': 77.549, 'fmeasure': 72.337}}
+
+This is without weights, and dropout = 0.2
+
+-------
+sigmoid
+{'rnn ': {'loss': 47.804, 'binary_accuracy': 76.9, 'precision': 61.531, 'recall': 64.253, 'fmeasure': 59.366}, 'lstm': {'loss': 45.498, 'binary_accuracy': 79.123, 'precision': 64.85, 'recall': 66.968, 'fmeasure': 61.722}}
+
+This is with weights, and dropout = 0.2
+
+-------
+-->
+
 
 | Method    | Precision | Accuracy | Recall | F1 Measure | Time Taken (Per Epoch) |
 |-----------|-----------|----------|--------|------------|------------|
