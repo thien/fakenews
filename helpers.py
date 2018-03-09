@@ -161,3 +161,50 @@ def countLongestArticle(dataset):
       longest = leng
       # print("New Max:", leng)
   return longest
+
+
+def evaluate(results):
+  # generate the 2x2 contingency table
+  # alongside the accuracy
+  total = len(results)
+  accuracy = 0
+  true_positive = 0
+  true_negative = 0
+  false_positive = 0
+  false_negative = 0
+
+  for i in results:
+    # calculate accuracy
+    if i['guess'] == i['actual']:
+      accuracy += 1
+    # calculate true positive
+      if (i['guess'] == 1):
+        true_positive += 1
+      else:
+        false_negative += 1
+    else:
+      if (i['guess'] == 1):
+        false_positive += 1
+      else:
+        true_negative += 1
+  
+  # collate results as percentages
+  s =  {
+    'tp' : true_positive/total,
+    'fp' : false_positive/total,
+    'fn' : false_negative/total,
+    'tn' : true_negative/total,
+    'accuracy' : accuracy/total
+  }
+  print(s)
+  # calculate precision:  TP/(TP+FN)
+  s['precision'] = s['tp']/(s['tp']+s['fn'])
+  # calculate recall: TP/(TP+FP)
+  s['recall'] = s['tp']/(s['tp']+s['fp'])
+  # calculate F1 Measure: 2*(precision*recall)/(precision+recall)
+  s['f1_measure'] = 2*(s['precision']*s['recall'])/(s['precision']+s['recall'])
+
+  for i in s:
+    # show each percentage in terms of 0-100% and 3 decimal places
+    s[i] = round(s[i] * 100,2)
+  return s

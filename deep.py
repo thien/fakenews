@@ -295,7 +295,7 @@ def fmeasure(y_true, y_pred):
   """
   return fbeta_score(y_true, y_pred, beta=1)
 
-def makeNN(weights, netType="lstm", useWeights=False, activation="sigmoid", printSummary=False):
+def makeNN(weights, netType="lstm", useWeights=False, activation="sigmoid", printSummary=False, useDropout=False):
   print("Initialising Neural Net ("+netType+")... ", end="")
   # we'll use a sequential RNN
   model = keras.models.Sequential()
@@ -312,7 +312,8 @@ def makeNN(weights, netType="lstm", useWeights=False, activation="sigmoid", prin
     model.add(LSTM(64)) # initialise the LSTM layer size
 
   # add a dropout layer
-  # model.add(Dropout(0.2))
+  if useDropout:
+    model.add(Dropout(0.1))
 
   # add a dense layer
   model.add(Dense(1, activation=activation))
@@ -335,35 +336,20 @@ def runNN(model, trainingData, history, epochs=2, netType="rnn"):
   batch_size = 128
   # epochs is the number of passes over the dataset
   # start training!
-  model.fit(xtr, ytr, batch_size=batch_size, epochs=epochs, validation_split=0.0, validation_data=(xte, yte),  callbacks=[history], verbose=2)
-  print("Finished running neural net(" + netType+").")
-  return model
+  model.fit(xtr, ytr, batch_size=batch_size, epochs=epochs, validation_split=0.05,  callbacks=[history], verbose=2)
+  s = model.predict(xte, batch_size=batch_size)
 
-def evaluate(hist):
-  # val_loss is the value of cost function for your cross validation data and loss is the value of cost function for your training data. On validation data, neurons using drop out do not drop random neurons. The reason is that during training we use drop out in order to add some noise for avoiding over-fitting. During calculating cross validation, we are in recall phase and not in training phase. We use all the capabilities of the network.
-
-  # we want to keep the results that consider (cross) validation data, which are keys that include val_. therefore, we remove keys that don't include this.
-
-  # removing the scores of the training data since that's not what we're measuring.
-  bad = []
-  for i in hist.history:
-    if "val_" not in i:
-      bad.append(i)
-  for i in bad:
-    hist.history.pop(i, None)
+  # convert it in a variable that can be interpreted with
+  # our evaluator
+  results = []
+  for i in range(len(s)):
+    results.append({
+      'guess' : np.rint(s[i]),
+      'actual' : yte[i]
+    })
   
-  # rename the remaining keys by removing the "val_" section
-  newHist = {}
-  for i in hist.history:
-    new_i = i.replace("val_", "")
-    newHist[new_i] = hist.history[i]
-  hist.history = newHist
-
-  # round results to 3dp and on a scale of 0-100%
-  for i in hist.history:
-    hist.history[i] = np.round(np.multiply(hist.history[i],100),3).tolist()
-
-  return hist.history
+  print("Finished running neural net(" + netType+").")
+  return (model, results)
 
 def getMeanMeasurements(histories):
   averaged = {}
@@ -398,8 +384,8 @@ def evaluateActivationFunctions(data, glove, epochs=1, loops=10):
     overallRNNHistory = []
     for i in range(loops):
       # set up neural networks (thanks keras)
-      lstm_model = makeNN(glove,"lstm",activation=activation,useWeights=False)
-      rnn_model = makeNN(glove,"rnn",activation=activation,useWeights=False)
+      lstm_model = makeNN(glove,"lstm",activation=activation,useWeights=True)
+      rnn_model = makeNN(glove,"rnn",activation=activation,useWeights=True)
       lstm_h = History()
       rnn_h = History()
       # run models on keras
@@ -424,6 +410,7 @@ if __name__ == "__main__":
   glove = helpers.loadGlove()
   gloveWords = glove.keys()
   import shallow
+  import helpers
   # load our dataset.
   dataset = helpers.loadJSON()
   dataset = shallow.tf(dataset)
@@ -437,21 +424,20 @@ if __name__ == "__main__":
   data = splitTrainingData(dataset)
 
   # evaluate the different activation functions
-  evaluateActivationFunctions(data, glove, epochs=10)
-  print("This is without weights")
+  # evaluateActivationFunctions(data, glove, epochs=10)
   
-  # # # set number of rounds
-  # epochs = 10
+  # # set number of rounds
+  epochs = 10
 
-  # # # set up neural network models
-  # lstm_model = makeNN(glove,"lstm",activation="sigmoid",useWeights=True)
-  # rnn_model = makeNN(glove,"rnn",activation="sigmoid",useWeights=True)
-  # lstm_h = History()
-  # rnn_h = History()
-  # # run models on keras
-  # rnn_results = runNN(rnn_model, data, rnn_h, epochs, "rnn")
-  # lstm_results = runNN(lstm_model, data, lstm_h, epochs, "lstm")
-  # print("LSTM:",evaluate(lstm_h))
-  # print("RNN: ",evaluate(rnn_h))
+  # # set up neural network models
+  lstm_model = makeNN(glove,"lstm",activation="sigmoid",useWeights=False)
+  rnn_model = makeNN(glove,"rnn",activation="sigmoid",useWeights=False)
+  lstm_h = History()
+  rnn_h = History()
+  # run models on keras
+  (rnn_model, rnn_results) = runNN(rnn_model, data, rnn_h, epochs, "rnn")
+  (lstm_model, lstm_results) = runNN(lstm_model, data, lstm_h, epochs, "lstm")
+  print("LSTM:",helpers.evaluate(lstm_results))
+  print("RNN: ",helpers.evaluate(rnn_results))
 
-  # print("Done")
+  print("Done")
