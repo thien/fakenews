@@ -85,13 +85,10 @@ dataset = helpers.loadJSON()
 dataset = shallow.tf(dataset)
 dataset = shallow.df(dataset)
 dataset = shallow.tfidf(dataset)
-gramSize = 3
+gramSize = 2
 dataset = shallow.ngram(dataset, gramSize)
 # process probabilities that we'll need for our naive bayes
 dataset = shallow.preprocess_probabilities(dataset)
-
-  # filter the training data based on the df information we have
-  # https://stackoverflow.com/questions/10464265/effects-of-stemming-on-the-term-frequency
 
 if enable_shallow:
   print("--:SHALLOW:---------------------------------------")
@@ -139,10 +136,10 @@ if enable_deep:
   # structure data so we can use it against keras
   trainingData = deep.splitTrainingData(dataset)
   # load neural network models
-  lstm_m = deep.makeNN(glove,"lstm",useWeights=False)
-  cnn_m  = deep.makeNN(glove,"cnn", useWeights=False)
+  lstm_m = deep.makeNN(glove,"lstm",useWeights=True)
+  cnn_m  = deep.makeNN(glove,"cnn", useWeights=True)
   # set number of rounds
-  epochs = 3
+  epochs = 5
   # we need a place to store those deep results!
   lstm_history = deep.History()
   cnn_history = deep.History()

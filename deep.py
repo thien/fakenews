@@ -9,7 +9,7 @@ import numpy as np
 import keras
 from keras import backend as K
 from keras.models import Sequential
-from keras.layers import Activation, Dense, LSTM, Embedding, Conv2D, SimpleRNN
+from keras.layers import Activation, Dense, LSTM, Embedding, Conv2D, SimpleRNN, Dropout
 from keras.callbacks import History
 print("Done.")
 
@@ -62,11 +62,6 @@ def word2vec(dataset, filename="word2vec"):
   for i in trumping_results:
     print(i)
   return model
-
-# -----------------------------
-# Classification
-# -----------------------------
-
 
 def generateGloveDict(gloveWords, debug=False):
   if debug:
@@ -201,6 +196,12 @@ def convertArticlesToInts(dataset, word2int, wordLimit=1000):
     # break
   return dataset
 
+
+# -----------------------------
+# Classification
+# -----------------------------
+
+
 def splitTrainingData(dataset):
   x_train, y_train, x_test, y_test = [], [], [], []
 
@@ -227,6 +228,7 @@ def splitTrainingData(dataset):
       'y' : y_test
     }
   }
+
 
 # Precision, measure and f1 measures were taken away from keras on 18th jan 2017. Fortunately, this can be reused again by looking at the keras commits on github.
 # https://github.com/keras-team/keras/commit/a56b1a55182acf061b1eb2e2c86b48193a0e88f7#diff-7b49e1c42728a58a9d08643a79f44cd4
@@ -293,9 +295,9 @@ def fmeasure(y_true, y_pred):
   """
   return fbeta_score(y_true, y_pred, beta=1)
 
-def makeNN(weights, netType="lstm", useWeights=False, activation="tanh", printSummary=False):
+def makeNN(weights, netType="lstm", useWeights=False, activation="sigmoid", printSummary=False):
   print("Initialising Neural Net ("+netType+")... ", end="")
-  # we'll use a sequential CNN
+  # we'll use a sequential RNN
   model = keras.models.Sequential()
 
   # initialise the embedding layer
@@ -304,12 +306,15 @@ def makeNN(weights, netType="lstm", useWeights=False, activation="tanh", printSu
   else:
     model.add(Embedding(weights.shape[0], weights.shape[1]))
 
-  if netType == "cnn":
+  if netType == "rnn":
     model.add(SimpleRNN(64)) # initialise a recurrent layer
   else:
     model.add(LSTM(64)) # initialise the LSTM layer size
-    
-  # initialise the dense layer size (this is the actual hidden layer)
+
+  # add a dropout layer
+  # model.add(Dropout(0.2))
+
+  # add a dense layer
   model.add(Dense(1, activation=activation))
   # group them together!
   model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['binary_accuracy', precision, recall, fmeasure])
@@ -320,7 +325,7 @@ def makeNN(weights, netType="lstm", useWeights=False, activation="tanh", printSu
   print("Done.")
   return model
 
-def runNN(model, trainingData, history, epochs=2, netType="cnn"):
+def runNN(model, trainingData, history, epochs=2, netType="rnn"):
   print("Running Neural Net (" + netType+")..")
   xtr = trainingData['train']['x']
   ytr = trainingData['train']['y']
@@ -383,27 +388,28 @@ def evaluateActivationFunctions(data, glove, epochs=1, loops=10):
   using tanh as it is the best overall contender. However,
   the tests itself can be rerun.
   """
-  activationMethods = ["sigmoid", "relu", "tanh", "linear"]
+  # activationMethods = ["sigmoid", "relu", "tanh", "linear"]
+  activationMethods = ["sigmoid"]
   mass_history = {}
   print("--")
   for activation in activationMethods:
     # store those deep results!
     overallLSTMHistory = []
-    overallCNNHistory = []
+    overallRNNHistory = []
     for i in range(loops):
       # set up neural networks (thanks keras)
-      lstm_model = makeNN(glove,"lstm",activation)
-      cnn_model = makeNN(glove,"cnn",activation)
+      lstm_model = makeNN(glove,"lstm",activation=activation,useWeights=False)
+      rnn_model = makeNN(glove,"rnn",activation=activation,useWeights=False)
       lstm_h = History()
-      cnn_h = History()
+      rnn_h = History()
       # run models on keras
-      cnn_results = runNN(cnn_model, data, cnn_h, epochs, "cnn")
+      rnn_results = runNN(rnn_model, data, rnn_h, epochs, "rnn")
       lstm_results = runNN(lstm_model, data, lstm_h, epochs, "lstm")
       overallLSTMHistory.append(evaluate(lstm_h))
-      overallCNNHistory.append(evaluate(cnn_h))
+      overallRNNHistory.append(evaluate(rnn_h))
     # now we average the results and make an averaged list.
     mass_history[activation] = {
-      "cnn " : getMeanMeasurements(overallCNNHistory),
+      "rnn " : getMeanMeasurements(overallRNNHistory),
       "lstm" : getMeanMeasurements(overallLSTMHistory)
     }
 
@@ -412,7 +418,6 @@ def evaluateActivationFunctions(data, glove, epochs=1, loops=10):
     print(i)
     print(mass_history[i])
   print()
-
 
 if __name__ == "__main__":
   print("Testing LSTM")
@@ -432,20 +437,21 @@ if __name__ == "__main__":
   data = splitTrainingData(dataset)
 
   # evaluate the different activation functions
-  # evaluateActivationFunctions(data, glove)
+  evaluateActivationFunctions(data, glove, epochs=10)
+  print("This is without weights")
   
-  # set number of rounds
-  epochs = 1
+  # # # set number of rounds
+  # epochs = 10
 
-  # set up neural network models
-  lstm_model = makeNN(glove,"lstm",activation="sigmoid")
-  cnn_model = makeNN(glove,"cnn",activation="sigmoid")
-  lstm_h = History()
-  cnn_h = History()
-  # run models on keras
-  cnn_results = runNN(cnn_model, data, cnn_h, epochs, "cnn")
-  lstm_results = runNN(lstm_model, data, lstm_h, epochs, "lstm")
-  print("LSTM:",evaluate(lstm_h))
-  print("CNN: ",evaluate(cnn_h))
+  # # # set up neural network models
+  # lstm_model = makeNN(glove,"lstm",activation="sigmoid",useWeights=True)
+  # rnn_model = makeNN(glove,"rnn",activation="sigmoid",useWeights=True)
+  # lstm_h = History()
+  # rnn_h = History()
+  # # run models on keras
+  # rnn_results = runNN(rnn_model, data, rnn_h, epochs, "rnn")
+  # lstm_results = runNN(lstm_model, data, lstm_h, epochs, "lstm")
+  # print("LSTM:",evaluate(lstm_h))
+  # print("RNN: ",evaluate(rnn_h))
 
-  print("Done")
+  # print("Done")
