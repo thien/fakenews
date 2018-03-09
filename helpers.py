@@ -196,7 +196,6 @@ def evaluate(results):
     'tn' : true_negative/total,
     'accuracy' : accuracy/total
   }
-  print(s)
   # calculate precision:  TP/(TP+FN)
   s['precision'] = s['tp']/(s['tp']+s['fn'])
   # calculate recall: TP/(TP+FP)
