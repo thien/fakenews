@@ -181,12 +181,14 @@ def evaluate(results):
       if (i['guess'] == 1):
         true_positive += 1
       else:
-        false_negative += 1
+        # false_negative += 1
+        true_negative += 1
     else:
       if (i['guess'] == 1):
         false_positive += 1
       else:
-        true_negative += 1
+        false_negative += 1
+        # true_negative += 1
   
   # collate results as percentages
   s =  {

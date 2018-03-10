@@ -102,8 +102,16 @@ def word2int(dataset, gloveWords, glove, threshold=2, debug=True):
 
   # -------------------------------
 
+  # Create a vector that is the average of the last 1000 words in the glove
+  # dataset.
+  lastFewMatrix = []
+  for i in list(gloveWords)[-1000:]:
+    lastFewMatrix.append(glove[i])
+  lastFewMatrix = np.array(lastFewMatrix).mean(axis=0)
+
   # create a null entry that we'll use for null and padding values.
-  dudEntry = np.zeros(glove["and"].shape)
+  # dudEntry = np.zeros(glove["and"].shape)
+  dudEntry = lastFewMatrix
   # create a smaller glove dataset using only the words we'll need
   # to consider
   microGlove = np.zeros((len(genericWords)+2, glove["and"].shape[0]))
@@ -160,7 +168,7 @@ def reverseText(word2intText,word2int):
     back.append(rev[i])
   print(back)
 
-def text2int(article, word2int, wordLimit=1000):
+def text2int(article, word2int, wordLimit=1000, voidEntries=False):
   # converts an individual article's text to integers
   articleInInts = []
   # convert an array of words to an array of ints based on our word2int
@@ -175,10 +183,11 @@ def text2int(article, word2int, wordLimit=1000):
     if word in word2int:
       articleInInts.append(word2int[word])
     else:
-      articleInInts.append(word2int["!NULL!"])
+      if voidEntries:
+        articleInInts.append(word2int["!NULL!"])
   # if the article is pretty short, we need to pad the rest of the article
   # so it meets the wordlimit size.
-  remainder = wordLimit - articleSize
+  remainder = wordLimit - len(articleInInts)
   for i in range(remainder):
     padding = []
     padding.append(word2int["!PAD!"])
@@ -361,17 +370,17 @@ if __name__ == "__main__":
   # evaluateActivationFunctions(data, glove, epochs=10)
   
   # set number of rounds
-  epochs = 20
+  epochs = 1
 
   # # set up neural network models
-  lstm_model = makeNN(glove,"lstm",activation="sigmoid",useWeights=True,useDropout=True)
-  rnn_model = makeNN(glove,"rnn",activation="sigmoid",useWeights=True,useDropout=True)
+  lstm_model = makeNN(glove,"lstm",activation="sigmoid",useWeights=True,useDropout=False)
+  rnn_model = makeNN(glove,"rnn",activation="sigmoid",useWeights=True,useDropout=False)
   lstm_h = History()
   rnn_h = History()
   # run models on keras
   (_, rnn_results) = runNN(rnn_model, data, rnn_h, epochs, "rnn")
   (_, lstm_results) = runNN(lstm_model, data, lstm_h, epochs, "lstm")
-  print("LSTM:",helpers.evaluate(lstm_results))
-  print("RNN: ",helpers.evaluate(rnn_results))
+  print("LSTM (With Weights):",helpers.evaluate(lstm_results))
+  print("RNN (With Weights): ",helpers.evaluate(rnn_results))
 
   print("Done")

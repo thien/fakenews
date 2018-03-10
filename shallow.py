@@ -157,7 +157,7 @@ def ngram(dataset, n=3):
       "grams": ngramFeatureVector
     }
   }
-  print("Done.")
+  print("Done. (Found",unique_fake+unique_real,n,"grams)")
   return dataset
 
 # -----------------------------
