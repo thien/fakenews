@@ -145,7 +145,7 @@ def word2Glove(article, glove, glovewords):
   # also need a null entry for words that aren't in the glove
   # dataset
   nullVector = np.zeros(glove[0].shape)
-  # iterate through the words and make a vector o fit!
+  # iterate through the words and make a vector of it!
   for word in article:
     # check if this word exists in the glove set
     if word in glovewords:
