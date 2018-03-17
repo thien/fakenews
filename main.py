@@ -70,7 +70,7 @@
 import shallow
 import helpers
 
-enable_shallow = False
+enable_shallow = True
 enable_deep = True
 
 print("--:PRE PROCESSING:--------------------------------")

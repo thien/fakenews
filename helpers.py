@@ -78,11 +78,12 @@ def downloadGloveDataset():
       print(file_zip, "is corrupt, redownloading..")
 
   if not zip_verified:
-    print("Downloading the glove dataset (This may take a while since it's about 862.2MB..)", end="")
+    print("Downloading the glove dataset (This may take a while since it's about 862.2MB..) \r")
     import shutil
+    
     with urllib.request.urlopen(glove_url) as response, open(file_zip, 'wb') as out_file:
         shutil.copyfileobj(response, out_file)
-    print("Done.")
+    print("Downloading the glove dataset (This may take a while since it's about 862.2MB..) Done.")
 
   # verify that the md5 checksum of the dataset is real.
   glove_verified = False
@@ -114,8 +115,7 @@ def loadGlove(trainingFile='glove.pickle'):
       glove = pickle.load(fp)
     print("Done.")
   except:
-    print("Can't load '"+trainingFile+"'.")
-    print("Creating dataset from scratch.. ", end='')
+    print("\nCan't load '"+trainingFile+"'.\nCreating dataset from scratch.. ")
     glove = initialiseGlove()
     print("Done.")
   return glove
@@ -123,10 +123,12 @@ def loadGlove(trainingFile='glove.pickle'):
 
 def initialiseGlove(file="glove.6B.50d.txt"):
   # Here we're using a Glove word2vec model! I tried using SpaCy's english model but it's rather abstract
-  print("Loading Glove dataset.. ", end="")
+  print("Loading Original Glove dataset file.. ")
   lines = None
   file = os.path.join(datapath, file)
   if not os.path.exists(file):
+    print("The original glove dataset file (" + file +") doesn't exist.")
+    print("Attempting to fetch the original zip (glove.6B.zip) file.")
     # the file doesn't even exist, we'll need to download it.
     downloadGloveDataset()
 

@@ -1,0 +1,9 @@
+You'll need to install keras, numpy and nltk!
+
+If you want, you can download the glove dataset directly via this url:
+http://nlp.stanford.edu/data/glove.6B.zip
+
+The resulting zip file should be placed in the /datafiles directory.
+
+Other than that, put the news_ds.csv in the same directory as the other code and run python3 main.py.
+
